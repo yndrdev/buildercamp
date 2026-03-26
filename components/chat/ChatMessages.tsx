@@ -12,20 +12,23 @@ interface Props {
 
 export default function ChatMessages({ messages, isStreaming }: Props) {
   const bottomRef = useRef<HTMLDivElement>(null)
+  const containerRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages, isStreaming])
 
   return (
-    <div className="h-full overflow-y-auto px-6 py-6 space-y-4">
-      {messages.map((msg, i) => (
-        <MessageBubble key={i} message={msg} />
-      ))}
-      {isStreaming && messages[messages.length - 1]?.role !== 'assistant' && (
-        <TypingIndicator />
-      )}
-      <div ref={bottomRef} />
+    <div ref={containerRef} className="h-full overflow-y-auto px-6 md:px-10 py-8">
+      <div className="max-w-[680px] mx-auto space-y-5">
+        {messages.map((msg, i) => (
+          <MessageBubble key={i} message={msg} index={i} />
+        ))}
+        {isStreaming && messages[messages.length - 1]?.role !== 'assistant' && (
+          <TypingIndicator />
+        )}
+        <div ref={bottomRef} />
+      </div>
     </div>
   )
 }

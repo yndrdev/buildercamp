@@ -1,6 +1,7 @@
 'use client'
 
-import { CheckCircle2, Circle, MessageSquare, User, Briefcase, Layers } from 'lucide-react'
+import { motion } from 'framer-motion'
+import { CheckCircle, User, Briefcase, Stack, ChatDots } from '@phosphor-icons/react'
 import type { QuestionSection } from '@/lib/types'
 import {
   Sidebar,
@@ -26,112 +27,132 @@ interface Props {
 
 export default function ChatSidebar({ phase, respondentName, respondentRole, sessionName, sections, answeredIds }: Props) {
   const answeredSet = new Set(answeredIds)
-
   const totalQuestions = sections.reduce((sum, s) => sum + s.questions.length, 0)
   const totalAnswered = sections.reduce((sum, s) => sum + s.questions.filter((q) => answeredSet.has(q.id)).length, 0)
-  const progress = totalQuestions > 0 ? Math.round((totalAnswered / totalQuestions) * 100) : 0
+  // Calculate overall progress including meta steps
+  const metaSteps = [!!respondentName, !!respondentRole, !!sessionName].filter(Boolean).length
+  const overallProgress = totalQuestions > 0
+    ? Math.round(((metaSteps + totalAnswered) / (3 + totalQuestions)) * 100)
+    : Math.round((metaSteps / 3) * 100)
 
   return (
-    <Sidebar className="border-r border-[#2A3544]">
-      <SidebarHeader className="p-4 border-b border-[#2A3544]">
-        <div className="flex items-center gap-2 mb-3">
-          <MessageSquare className="w-4 h-4 text-[#E8703A]" />
-          <span className="text-xs font-bold tracking-widest uppercase text-[#E8703A]">Intake Progress</span>
-        </div>
-        {totalQuestions > 0 && (
-          <div className="space-y-1">
-            <div className="flex justify-between text-xs text-[#6B7280]">
-              <span>{totalAnswered} of {totalQuestions}</span>
-              <span>{progress}%</span>
-            </div>
-            <div className="h-1.5 bg-[#1A2332] rounded-full overflow-hidden">
-              <div
-                className="h-full bg-[#E8703A] rounded-full transition-all duration-500"
-                style={{ width: `${progress}%` }}
-              />
-            </div>
+    <Sidebar className="border-r border-[var(--border)]">
+      <SidebarHeader className="p-5 pb-4">
+        {/* Brand mark */}
+        <div className="flex items-center gap-3 mb-5">
+          <div className="w-9 h-9 rounded-[var(--radius-md)] bg-gradient-to-br from-[var(--gold)] to-[var(--coral)] flex items-center justify-center text-[10px] font-bold text-white tracking-tight shadow-[var(--shadow-coral)]">
+            BC
           </div>
-        )}
+          <div>
+            <div className="text-[13px] font-semibold text-[var(--text-primary)] tracking-tight">BuilderCamp</div>
+            <div className="text-[11px] text-[var(--text-muted)]">Pre-Session Intake</div>
+          </div>
+        </div>
+
+        {/* Progress ring */}
+        <div className="flex items-center gap-4 p-3.5 rounded-[var(--radius-lg)] bg-[var(--surface)] border border-[var(--border)]">
+          <div className="relative w-10 h-10 shrink-0">
+            <svg className="w-10 h-10 -rotate-90" viewBox="0 0 36 36">
+              <circle cx="18" cy="18" r="15.5" fill="none" stroke="var(--surface-elevated)" strokeWidth="3" />
+              <motion.circle
+                cx="18" cy="18" r="15.5" fill="none"
+                stroke="var(--coral)"
+                strokeWidth="3"
+                strokeLinecap="round"
+                strokeDasharray="97.39"
+                initial={{ strokeDashoffset: 97.39 }}
+                animate={{ strokeDashoffset: 97.39 - (97.39 * overallProgress) / 100 }}
+                transition={{ duration: 0.8, ease: 'easeOut' }}
+              />
+            </svg>
+            <span className="absolute inset-0 flex items-center justify-center text-[10px] font-bold text-[var(--text-primary)]">
+              {overallProgress}%
+            </span>
+          </div>
+          <div>
+            <div className="text-[12px] font-semibold text-[var(--text-primary)]">Progress</div>
+            <div className="text-[11px] text-[var(--text-muted)]">{metaSteps + totalAnswered} of {3 + totalQuestions} steps</div>
+          </div>
+        </div>
       </SidebarHeader>
 
-      <SidebarContent>
-        {/* Meta items: Name, Role, Session */}
+      <SidebarContent className="px-2">
+        {/* Meta: Name, Role, Session */}
         <SidebarGroup>
-          <SidebarGroupLabel className="text-[#6B7280] text-xs">Basics</SidebarGroupLabel>
+          <SidebarGroupLabel className="text-[10px] font-bold tracking-[0.1em] uppercase text-[var(--text-muted)] px-3">Getting Started</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              <SidebarMenuItem>
-                <SidebarMenuButton className="gap-3">
-                  {respondentName ? (
-                    <CheckCircle2 className="w-4 h-4 text-[#E8703A] shrink-0" />
-                  ) : (
-                    <User className={`w-4 h-4 shrink-0 ${phase === 'name' ? 'text-[#E8703A] animate-pulse' : 'text-[#6B7280]'}`} />
-                  )}
-                  <span className={respondentName ? 'text-[#E8E6E1]' : 'text-[#6B7280]'}>
-                    {respondentName || 'Your Name'}
-                  </span>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-              <SidebarMenuItem>
-                <SidebarMenuButton className="gap-3">
-                  {respondentRole ? (
-                    <CheckCircle2 className="w-4 h-4 text-[#E8703A] shrink-0" />
-                  ) : (
-                    <Briefcase className={`w-4 h-4 shrink-0 ${phase === 'role' ? 'text-[#E8703A] animate-pulse' : 'text-[#6B7280]'}`} />
-                  )}
-                  <span className={respondentRole ? 'text-[#E8E6E1]' : 'text-[#6B7280]'}>
-                    {respondentRole || 'Your Role'}
-                  </span>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-              <SidebarMenuItem>
-                <SidebarMenuButton className="gap-3">
-                  {sessionName ? (
-                    <CheckCircle2 className="w-4 h-4 text-[#E8703A] shrink-0" />
-                  ) : (
-                    <Layers className={`w-4 h-4 shrink-0 ${phase === 'session' ? 'text-[#E8703A] animate-pulse' : 'text-[#6B7280]'}`} />
-                  )}
-                  <span className={sessionName ? 'text-[#E8E6E1]' : 'text-[#6B7280]'}>
-                    {sessionName || 'Session Track'}
-                  </span>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
+              {[
+                { done: !!respondentName, active: phase === 'name', icon: User, label: respondentName || 'Your name', },
+                { done: !!respondentRole, active: phase === 'role', icon: Briefcase, label: respondentRole || 'Your role', },
+                { done: !!sessionName, active: phase === 'session', icon: Stack, label: sessionName || 'Session track', },
+              ].map((item, i) => (
+                <SidebarMenuItem key={i}>
+                  <SidebarMenuButton className="gap-3 py-2.5 rounded-[var(--radius-md)]">
+                    {item.done ? (
+                      <CheckCircle weight="fill" className="w-[16px] h-[16px] text-[var(--coral)] shrink-0" />
+                    ) : (
+                      <item.icon
+                        weight={item.active ? 'fill' : 'regular'}
+                        className={`w-[16px] h-[16px] shrink-0 ${item.active ? 'text-[var(--coral)]' : 'text-[var(--text-muted)]'}`}
+                      />
+                    )}
+                    <span className={`text-[13px] truncate ${
+                      item.done ? 'text-[var(--text-primary)] font-medium' : item.active ? 'text-[var(--coral)]' : 'text-[var(--text-muted)]'
+                    }`}>
+                      {item.label}
+                    </span>
+                    {item.active && !item.done && (
+                      <motion.div
+                        className="w-1.5 h-1.5 rounded-full bg-[var(--coral)] ml-auto shrink-0"
+                        animate={{ opacity: [1, 0.3, 1] }}
+                        transition={{ duration: 1.5, repeat: Infinity }}
+                      />
+                    )}
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
 
         {/* Question sections */}
-        {sections.map((section, si) => (
-          <SidebarGroup key={si}>
-            {section.header && (
-              <SidebarGroupLabel className="text-[#E8703A] text-xs font-bold tracking-wider uppercase">
-                {section.header}
+        {sections.map((section, si) => {
+          const sectionAnswered = section.questions.filter((q) => answeredSet.has(q.id)).length
+          return (
+            <SidebarGroup key={si}>
+              <SidebarGroupLabel className="flex items-center justify-between px-3">
+                <span className="text-[10px] font-bold tracking-[0.1em] uppercase text-[var(--coral)]">
+                  {section.header || 'Questions'}
+                </span>
+                <span className="text-[10px] text-[var(--text-muted)] font-mono">
+                  {sectionAnswered}/{section.questions.length}
+                </span>
               </SidebarGroupLabel>
-            )}
-            <SidebarGroupContent>
-              <SidebarMenu>
-                {section.questions.map((q) => {
-                  const isAnswered = answeredSet.has(q.id)
-                  return (
-                    <SidebarMenuItem key={q.id}>
-                      <SidebarMenuButton className="gap-3">
-                        {isAnswered ? (
-                          <CheckCircle2 className="w-3.5 h-3.5 text-[#E8703A] shrink-0" />
-                        ) : (
-                          <Circle className="w-3.5 h-3.5 text-[#2A3544] shrink-0" />
-                        )}
-                        <span className={`text-xs truncate ${isAnswered ? 'text-[#9CA3AF]' : 'text-[#6B7280]'}`}>
-                          {q.label}
-                          {q.isRequired && <span className="text-[#E8703A] ml-0.5">*</span>}
-                        </span>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                  )
-                })}
-              </SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
-        ))}
+              <SidebarGroupContent>
+                <SidebarMenu>
+                  {section.questions.map((q) => {
+                    const isAnswered = answeredSet.has(q.id)
+                    return (
+                      <SidebarMenuItem key={q.id}>
+                        <SidebarMenuButton className="gap-3 py-2 rounded-[var(--radius-sm)]">
+                          {isAnswered ? (
+                            <CheckCircle weight="fill" className="w-[14px] h-[14px] text-[var(--coral)] shrink-0 opacity-70" />
+                          ) : (
+                            <ChatDots weight="regular" className="w-[14px] h-[14px] text-[var(--text-muted)] shrink-0 opacity-40" />
+                          )}
+                          <span className={`text-[12px] truncate ${isAnswered ? 'text-[var(--text-secondary)]' : 'text-[var(--text-muted)]'}`}>
+                            {q.label}
+                          </span>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                    )
+                  })}
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </SidebarGroup>
+          )
+        })}
       </SidebarContent>
     </Sidebar>
   )

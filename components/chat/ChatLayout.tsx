@@ -1,12 +1,13 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
 import type { SessionGroup, QuestionSection, ChatMessage } from '@/lib/types'
 import ChatSidebar from './ChatSidebar'
 import ChatMessages from './ChatMessages'
 import ChatInput from './ChatInput'
 import SuggestionChips from './SuggestionChips'
-import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar'
+import { SidebarProvider, SidebarInset, SidebarTrigger } from '@/components/ui/sidebar'
 
 interface Props {
   clientId: string
@@ -28,7 +29,6 @@ export default function ChatLayout({ clientId, clientName }: Props) {
   const [respondentName, setRespondentName] = useState<string | null>(null)
   const [respondentRole, setRespondentRole] = useState<string | null>(null)
 
-  // Initialize conversation
   useEffect(() => {
     async function init() {
       const res = await fetch('/api/chat/start', {
@@ -54,45 +54,28 @@ export default function ChatLayout({ clientId, clientName }: Props) {
     setMessages((prev) => [...prev, userMsg])
     setIsStreaming(true)
 
-    // Detect phase transitions from user input
+    // Phase transitions
     if (phase === 'name' && !respondentName) {
       const name = text.trim().replace(/^(my name is |i'm |i am |hi,? i'm |hey,? i'm )/i, '').replace(/[.!]$/, '').trim()
       setRespondentName(name)
       setPhase('role')
-      // Persist name to DB
-      fetch('/api/chat', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ conversationId, respondentName: name }),
-      }).catch(() => {})
+      fetch('/api/chat', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ conversationId, respondentName: name }) }).catch(() => {})
     } else if (phase === 'role' && !respondentRole) {
       const roleName = text.trim()
       setRespondentRole(roleName)
       setPhase('session')
-      // Persist role to DB
-      fetch('/api/chat', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ conversationId, respondentRole: roleName }),
-      }).catch(() => {})
+      fetch('/api/chat', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ conversationId, respondentRole: roleName }) }).catch(() => {})
     } else if (phase === 'session' && !selectedSessionId) {
-      // Match session by name
       const match = sessionGroups.find((sg) =>
         text.toLowerCase().includes(sg.name.toLowerCase()) || sg.name.toLowerCase().includes(text.toLowerCase())
       )
       if (match) {
         setSelectedSessionId(match.id)
         setPhase('questions')
-        // Persist session to DB
-        fetch('/api/chat', {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ conversationId, sessionGroupId: match.id }),
-        }).catch(() => {})
+        fetch('/api/chat', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ conversationId, sessionGroupId: match.id }) }).catch(() => {})
       }
     }
 
-    // Stream response
     try {
       const res = await fetch('/api/chat', {
         method: 'POST',
@@ -100,16 +83,12 @@ export default function ChatLayout({ clientId, clientName }: Props) {
         body: JSON.stringify({ conversationId, clientId, message: text.trim() }),
       })
 
-      if (!res.body) {
-        setIsStreaming(false)
-        return
-      }
+      if (!res.body) { setIsStreaming(false); return }
 
       const reader = res.body.getReader()
       const decoder = new TextDecoder()
       let fullText = ''
 
-      // Add empty assistant message to stream into
       setMessages((prev) => [...prev, { role: 'assistant', content: '', timestamp: new Date().toISOString() }])
 
       while (true) {
@@ -117,7 +96,6 @@ export default function ChatLayout({ clientId, clientName }: Props) {
         if (done) break
         const chunk = decoder.decode(value, { stream: true })
         fullText += chunk
-        // Strip markers before display
         const cleanText = fullText.replace(/<!--ANSWERED:[^>]+-->/g, '').replace(/<!--COMPLETE-->/g, '').trim()
         setMessages((prev) => {
           const updated = [...prev]
@@ -126,7 +104,6 @@ export default function ChatLayout({ clientId, clientName }: Props) {
         })
       }
 
-      // Extract answered markers
       const markers: string[] = []
       const re = /<!--ANSWERED:([^>]+)-->/g
       let m: RegExpExecArray | null
@@ -137,19 +114,13 @@ export default function ChatLayout({ clientId, clientName }: Props) {
 
       if (fullText.includes('<!--COMPLETE-->')) {
         setPhase('complete')
-        // Trigger analysis
-        fetch('/api/analyze', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ conversationId }),
-        }).catch(() => {})
+        fetch('/api/analyze', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ conversationId }) }).catch(() => {})
       }
     } catch {
-      // Network error — show error message
       setMessages((prev) => {
         const updated = [...prev]
         if (updated[updated.length - 1]?.role === 'assistant' && !updated[updated.length - 1].content) {
-          updated[updated.length - 1] = { ...updated[updated.length - 1], content: 'Sorry, something went wrong. Please try again.' }
+          updated[updated.length - 1] = { ...updated[updated.length - 1], content: 'Something went wrong. Please try again.' }
         }
         return updated
       })
@@ -158,7 +129,6 @@ export default function ChatLayout({ clientId, clientName }: Props) {
     }
   }, [conversationId, clientId, isStreaming, phase, respondentName, respondentRole, selectedSessionId, sessionGroups])
 
-  // Get current suggestion chips
   const getChips = (): string[] | null => {
     if (isStreaming) return null
     if (phase === 'role') return roles
@@ -166,7 +136,6 @@ export default function ChatLayout({ clientId, clientName }: Props) {
     return null
   }
 
-  // Get current question sections for sidebar
   const currentSections = selectedSessionId ? questionsByGroup[selectedSessionId] || [] : []
 
   return (
@@ -180,37 +149,52 @@ export default function ChatLayout({ clientId, clientName }: Props) {
         sections={currentSections}
         answeredIds={answeredIds}
       />
-      <SidebarInset className="flex flex-col h-screen">
+      <SidebarInset className="flex flex-col min-h-[100dvh]">
         {/* Header */}
-        <div className="flex items-center gap-3 px-6 py-4 border-b border-[#2A3544]">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#E8703A] to-[#D4A574] flex items-center justify-center text-xs font-bold text-white">
-            BC
+        <header className="flex items-center gap-3 px-4 md:px-6 h-14 border-b border-[var(--border)] bg-[var(--bg)]/80 backdrop-blur-xl sticky top-0 z-10">
+          <SidebarTrigger className="text-[var(--text-muted)] hover:text-[var(--text-primary)] -ml-1" />
+          <div className="w-px h-5 bg-[var(--border)]" />
+          <div className="flex-1">
+            <h1 className="text-[14px] font-semibold text-[var(--text-primary)] tracking-tight">{clientName}</h1>
           </div>
-          <div>
-            <h1 className="text-sm font-semibold text-[#F5F5F0]" style={{ fontFamily: 'Georgia, serif' }}>{clientName}</h1>
-            <p className="text-xs text-[#6B7280]">Pre-Session Intake</p>
-          </div>
-          {phase === 'complete' && (
-            <span className="ml-auto text-xs text-[#E8703A] font-medium px-2 py-1 rounded-full border border-[#E8703A]/30 bg-[#E8703A]/10">
-              Complete
-            </span>
+          <AnimatePresence>
+            {phase === 'complete' && (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="flex items-center gap-1.5 text-[11px] font-semibold text-[var(--coral)] bg-[var(--coral)]/8 px-3 py-1.5 rounded-[var(--radius-full)]"
+              >
+                <div className="w-1.5 h-1.5 rounded-full bg-[var(--coral)]" />
+                Complete
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </header>
+
+        {/* Messages */}
+        <div className="flex-1 overflow-hidden">
+          {phase === 'loading' ? (
+            <div className="flex items-center justify-center h-full">
+              <motion.div
+                className="w-10 h-10 rounded-[var(--radius-md)] bg-gradient-to-br from-[var(--gold)] to-[var(--coral)] flex items-center justify-center text-[11px] font-bold text-white"
+                animate={{ scale: [1, 1.05, 1], opacity: [0.7, 1, 0.7] }}
+                transition={{ duration: 1.5, repeat: Infinity }}
+              >
+                BC
+              </motion.div>
+            </div>
+          ) : (
+            <ChatMessages messages={messages} isStreaming={isStreaming} />
           )}
         </div>
 
-        {/* Messages area */}
-        <div className="flex-1 overflow-hidden">
-          <ChatMessages messages={messages} isStreaming={isStreaming} />
-        </div>
-
-        {/* Suggestion chips */}
-        {getChips() && (
-          <div className="px-6 pb-2">
-            <SuggestionChips options={getChips()!} onSelect={sendMessage} />
-          </div>
-        )}
-
-        {/* Input */}
-        <div className="px-6 pb-6">
+        {/* Chips + Input */}
+        <div className="px-4 md:px-10 pb-6 pt-2 space-y-3">
+          <AnimatePresence>
+            {getChips() && (
+              <SuggestionChips options={getChips()!} onSelect={sendMessage} />
+            )}
+          </AnimatePresence>
           <ChatInput
             onSend={sendMessage}
             disabled={isStreaming || phase === 'loading' || phase === 'complete'}
