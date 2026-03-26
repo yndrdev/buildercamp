@@ -17,23 +17,34 @@ export default async function ClientIntakePage({ params }: Props) {
 
   if (!client) notFound()
 
-  const { data: sessionGroups } = await supabase
-    .from('session_groups')
-    .select('*')
-    .eq('client_id', client.id)
-    .order('sort_order', { ascending: true })
+  const [{ data: sessionGroups }, { data: roles }] = await Promise.all([
+    supabase
+      .from('session_groups')
+      .select('*')
+      .eq('client_id', client.id)
+      .order('sort_order', { ascending: true }),
+    supabase
+      .from('client_roles')
+      .select('title')
+      .eq('client_id', client.id)
+      .order('sort_order', { ascending: true }),
+  ])
 
-  const { data: questions } = await supabase
-    .from('questions')
-    .select('*')
-    .in('session_group_id', (sessionGroups || []).map((sg) => sg.id))
-    .order('sort_order', { ascending: true })
+  const sgIds = (sessionGroups || []).map((sg) => sg.id)
+  const { data: questions } = sgIds.length > 0
+    ? await supabase
+        .from('questions')
+        .select('*')
+        .in('session_group_id', sgIds)
+        .order('sort_order', { ascending: true })
+    : { data: [] }
 
   return (
     <IntakeForm
       client={client}
       sessionGroups={sessionGroups || []}
       questions={questions || []}
+      roles={(roles || []).map((r) => r.title)}
     />
   )
 }

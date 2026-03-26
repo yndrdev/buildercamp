@@ -37,11 +37,12 @@ interface Props {
   client: Client
   sessionGroups: SessionGroup[]
   questions: Question[]
+  roles: string[]
 }
 
 type View = 'select' | 'form' | 'success'
 
-export default function IntakeForm({ client, sessionGroups, questions }: Props) {
+export default function IntakeForm({ client, sessionGroups, questions, roles }: Props) {
   const [view, setView] = useState<View>('select')
   const [selectedGroup, setSelectedGroup] = useState<SessionGroup | null>(null)
   const [name, setName] = useState('')
@@ -68,7 +69,7 @@ export default function IntakeForm({ client, sessionGroups, questions }: Props) 
   }
 
   const requiredMissing = () => {
-    if (!name.trim() || !email.trim()) return true
+    if (!name.trim() || !email.trim() || !role.trim()) return true
     for (const q of groupQuestions) {
       if (q.is_required && !answers[q.id]?.trim()) return true
     }
@@ -216,15 +217,30 @@ export default function IntakeForm({ client, sessionGroups, questions }: Props) 
               </div>
               <div>
                 <label className="block text-[#E8E6E1] text-sm font-medium mb-2">
-                  Title / Role
+                  Title / Role <span className="text-[#E8703A]">*</span>
                 </label>
-                <input
-                  type="text"
-                  value={role}
-                  onChange={(e) => setRole(e.target.value)}
-                  className="w-full bg-[#1E2D3D] border border-[#2A4054] rounded-lg px-4 py-3 text-[#D4A574] placeholder:text-[#6B7280] transition-all duration-200 text-sm"
-                  placeholder="e.g. VP of Engineering"
-                />
+                {roles.length > 0 ? (
+                  <select
+                    value={role}
+                    onChange={(e) => setRole(e.target.value)}
+                    required
+                    className="w-full bg-[#1E2D3D] border border-[#2A4054] rounded-lg px-4 py-3 text-[#D4A574] transition-all duration-200 text-sm cursor-pointer"
+                  >
+                    <option value="">Select your role...</option>
+                    {roles.map((r) => (
+                      <option key={r} value={r}>{r}</option>
+                    ))}
+                  </select>
+                ) : (
+                  <input
+                    type="text"
+                    value={role}
+                    onChange={(e) => setRole(e.target.value)}
+                    required
+                    className="w-full bg-[#1E2D3D] border border-[#2A4054] rounded-lg px-4 py-3 text-[#D4A574] placeholder:text-[#6B7280] transition-all duration-200 text-sm"
+                    placeholder="e.g. VP of Engineering"
+                  />
+                )}
               </div>
             </div>
           </div>
