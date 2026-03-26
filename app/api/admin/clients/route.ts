@@ -26,7 +26,7 @@ export async function GET() {
 
 // POST: create a new client with slug, session groups, roles, and knowledge
 export async function POST(req: NextRequest) {
-  const { name, slug, sessionGroups, roles } = await req.json()
+  const { name, slug, sessionGroups, roles, allowedDomains } = await req.json()
 
   if (!name || !slug) {
     return NextResponse.json({ error: 'Name and slug are required' }, { status: 400 })
@@ -35,7 +35,11 @@ export async function POST(req: NextRequest) {
   // Create client
   const { data: client, error: clientError } = await supabase
     .from('clients')
-    .insert({ name, slug: slug.toLowerCase().replace(/[^a-z0-9-]/g, '-') })
+    .insert({
+      name,
+      slug: slug.toLowerCase().replace(/[^a-z0-9-]/g, '-'),
+      allowed_domains: allowedDomains ? allowedDomains.split(',').map((d: string) => d.trim().toLowerCase()).filter(Boolean) : [],
+    })
     .select()
     .single()
 

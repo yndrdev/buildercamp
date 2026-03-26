@@ -30,6 +30,7 @@ export default function AdminPage() {
   const [newSlug, setNewSlug] = useState('')
   const [newSessions, setNewSessions] = useState('')
   const [newRoles, setNewRoles] = useState('')
+  const [newDomains, setNewDomains] = useState('')
   const [creating, setCreating] = useState(false)
   const [actionPlan, setActionPlan] = useState<{ clientId: string; plan: ActionPlan; count: number } | null>(null)
   const [generatingPlan, setGeneratingPlan] = useState<string | null>(null)
@@ -60,10 +61,10 @@ export default function AdminPage() {
     await fetch('/api/admin/clients', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: newName.trim(), slug, sessionGroups: sessions, roles }),
+      body: JSON.stringify({ name: newName.trim(), slug, sessionGroups: sessions, roles, allowedDomains: newDomains.trim() }),
     })
 
-    setNewName(''); setNewSlug(''); setNewSessions(''); setNewRoles('')
+    setNewName(''); setNewSlug(''); setNewSessions(''); setNewRoles(''); setNewDomains('')
     setShowCreate(false)
     setCreating(false)
     fetchClients()
@@ -166,6 +167,13 @@ export default function AdminPage() {
                   <textarea value={newRoles} onChange={(e) => setNewRoles(e.target.value)} rows={3}
                     placeholder={"CEO\nCTO\nVP of Engineering\nProduct Manager"}
                     className="w-full bg-[var(--bg)] border border-[var(--border)] rounded-[var(--radius-md)] px-4 py-2.5 text-[13px] text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--coral)]/40 resize-none" />
+                </div>
+                <div>
+                  <label className="text-[12px] font-medium text-[var(--text-secondary)] block mb-1.5">Allowed Email Domains (comma-separated)</label>
+                  <input value={newDomains} onChange={(e) => setNewDomains(e.target.value)}
+                    placeholder="company.com, subsidiary.com"
+                    className="w-full bg-[var(--bg)] border border-[var(--border)] rounded-[var(--radius-md)] px-4 py-2.5 text-[13px] text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--coral)]/40" />
+                  <p className="text-[10px] text-[var(--text-muted)] mt-1">Users with these email domains can request access via magic link</p>
                 </div>
                 <button onClick={createClient} disabled={creating || !newName.trim()}
                   className="w-full py-3 rounded-[var(--radius-md)] bg-[var(--coral)] text-white font-medium text-[14px] hover:bg-[var(--coral-light)] disabled:opacity-30 transition-colors">
