@@ -95,6 +95,7 @@ ${questionPrompt ? `## Questions to Ask (in order)\n${questionPrompt}` : ''}
 - When suggesting options (roles, sessions, select questions), list them naturally.
 - Do NOT use markdown formatting. Plain text only.
 - NEVER use emojis. No smiley faces, no thumbs up, no fire, nothing. Keep it clean and professional.
+- NEVER use em dashes or en dashes. Use commas, periods, or "and" instead of dashes.
 - After each answered question, end your message with <!--ANSWERED:question_id_here-->
 - When ALL questions (required and optional) have been asked OR the participant wants to wrap up, end with <!--COMPLETE-->
 - These markers are hidden from the user — include them at the very end.
