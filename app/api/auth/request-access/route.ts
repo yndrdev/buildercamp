@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createSupabaseAdmin } from '@/lib/supabase-server'
+import { createClient } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabase'
 
 export async function POST(req: NextRequest) {
@@ -27,11 +27,15 @@ export async function POST(req: NextRequest) {
     )
   }
 
-  // Send magic link via Supabase Auth
-  const admin = createSupabaseAdmin()
+  // Send magic link via Supabase Auth using anon key (signInWithOtp works with anon)
+  const authClient = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  )
+
   const origin = req.headers.get('origin') || 'https://www.buildercamp.ai'
 
-  const { error } = await admin.auth.signInWithOtp({
+  const { error } = await authClient.auth.signInWithOtp({
     email,
     options: {
       emailRedirectTo: `${origin}/api/auth/callback`,
