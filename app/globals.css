@@ -1,5 +1,3 @@
-@import "tw-animate-css";
-@import "shadcn/tailwind.css";
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -19,12 +17,47 @@
   --field-border: #2A4054;
   --field-focus: #E8703A;
   --divider: #2A3544;
+
+  --background: #0F1419;
+  --foreground: #E8E6E1;
+  --card: #212D3B;
+  --card-foreground: #E8E6E1;
+  --popover: #1A2332;
+  --popover-foreground: #E8E6E1;
+  --primary: #E8703A;
+  --primary-foreground: #FFFFFF;
+  --secondary: #1A2332;
+  --secondary-foreground: #E8E6E1;
+  --muted: #1A2332;
+  --muted-foreground: #6B7280;
+  --accent: #E8703A;
+  --accent-foreground: #FFFFFF;
+  --destructive: #e5484d;
+  --destructive-foreground: #FFFFFF;
+  --border: #2A3544;
+  --input: #2A4054;
+  --ring: #E8703A;
+  --radius: 0.625rem;
+  --sidebar-background: #0F1419;
+  --sidebar-foreground: #E8E6E1;
+  --sidebar-primary: #E8703A;
+  --sidebar-primary-foreground: #FFFFFF;
+  --sidebar-accent: #1A2332;
+  --sidebar-accent-foreground: #E8E6E1;
+  --sidebar-border: #2A3544;
+  --sidebar-ring: #E8703A;
+}
+
+@layer base {
+  * {
+    @apply border-[#2A3544];
+  }
+  body {
+    @apply bg-[#0F1419] text-[#E8E6E1];
+  }
 }
 
 body {
-  background-color: var(--bg);
-  color: var(--text-primary);
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -33,32 +66,14 @@ h1, h2, h3, h4, h5, h6 {
   font-family: Georgia, 'Times New Roman', serif;
 }
 
-code, pre, .font-mono {
-  font-family: Consolas, 'Courier New', monospace;
-}
-
 ::selection {
   background-color: rgba(232, 112, 58, 0.3);
   color: var(--white);
 }
 
-input, textarea, select {
-  outline: none;
-}
-
-input:focus, textarea:focus, select:focus {
-  box-shadow: 0 0 0 2px var(--field-focus);
-}
-
 @keyframes fadeInUp {
-  from {
-    opacity: 0;
-    transform: translateY(12px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 .animate-fade-in {
@@ -69,93 +84,8 @@ input:focus, textarea:focus, select:focus {
 .stagger-1 { animation-delay: 0.1s; }
 .stagger-2 { animation-delay: 0.2s; }
 .stagger-3 { animation-delay: 0.3s; }
-.stagger-4 { animation-delay: 0.4s; }
-.stagger-5 { animation-delay: 0.5s; }
 
 ::-webkit-scrollbar { width: 6px; }
-::-webkit-scrollbar-track { background: var(--bg); }
-::-webkit-scrollbar-thumb { background: var(--divider); border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
-
-@layer base {
-  .theme {
-    --font-heading: var(--font-sans);
-    --font-sans: var(--font-sans);
-  }
-  :root {
-    --background: oklch(1 0 0);
-    --foreground: oklch(0.145 0 0);
-    --card: oklch(1 0 0);
-    --card-foreground: oklch(0.145 0 0);
-    --popover: oklch(1 0 0);
-    --popover-foreground: oklch(0.145 0 0);
-    --primary: oklch(0.205 0 0);
-    --primary-foreground: oklch(0.985 0 0);
-    --secondary: oklch(0.97 0 0);
-    --secondary-foreground: oklch(0.205 0 0);
-    --muted: oklch(0.97 0 0);
-    --muted-foreground: oklch(0.556 0 0);
-    --accent: oklch(0.97 0 0);
-    --accent-foreground: oklch(0.205 0 0);
-    --destructive: oklch(0.577 0.245 27.325);
-    --border: oklch(0.922 0 0);
-    --input: oklch(0.922 0 0);
-    --ring: oklch(0.708 0 0);
-    --chart-1: oklch(0.87 0 0);
-    --chart-2: oklch(0.556 0 0);
-    --chart-3: oklch(0.439 0 0);
-    --chart-4: oklch(0.371 0 0);
-    --chart-5: oklch(0.269 0 0);
-    --radius: 0.625rem;
-    --sidebar: oklch(0.985 0 0);
-    --sidebar-foreground: oklch(0.145 0 0);
-    --sidebar-primary: oklch(0.205 0 0);
-    --sidebar-primary-foreground: oklch(0.985 0 0);
-    --sidebar-accent: oklch(0.97 0 0);
-    --sidebar-accent-foreground: oklch(0.205 0 0);
-    --sidebar-border: oklch(0.922 0 0);
-    --sidebar-ring: oklch(0.708 0 0);
-  }
-  .dark {
-    --background: oklch(0.145 0 0);
-    --foreground: oklch(0.985 0 0);
-    --card: oklch(0.205 0 0);
-    --card-foreground: oklch(0.985 0 0);
-    --popover: oklch(0.205 0 0);
-    --popover-foreground: oklch(0.985 0 0);
-    --primary: oklch(0.922 0 0);
-    --primary-foreground: oklch(0.205 0 0);
-    --secondary: oklch(0.269 0 0);
-    --secondary-foreground: oklch(0.985 0 0);
-    --muted: oklch(0.269 0 0);
-    --muted-foreground: oklch(0.708 0 0);
-    --accent: oklch(0.269 0 0);
-    --accent-foreground: oklch(0.985 0 0);
-    --destructive: oklch(0.704 0.191 22.216);
-    --border: oklch(1 0 0 / 10%);
-    --input: oklch(1 0 0 / 15%);
-    --ring: oklch(0.556 0 0);
-    --chart-1: oklch(0.87 0 0);
-    --chart-2: oklch(0.556 0 0);
-    --chart-3: oklch(0.439 0 0);
-    --chart-4: oklch(0.371 0 0);
-    --chart-5: oklch(0.269 0 0);
-    --sidebar: oklch(0.205 0 0);
-    --sidebar-foreground: oklch(0.985 0 0);
-    --sidebar-primary: oklch(0.488 0.243 264.376);
-    --sidebar-primary-foreground: oklch(0.985 0 0);
-    --sidebar-accent: oklch(0.269 0 0);
-    --sidebar-accent-foreground: oklch(0.985 0 0);
-    --sidebar-border: oklch(1 0 0 / 10%);
-    --sidebar-ring: oklch(0.556 0 0);
-  }
-  * {
-    @apply border-border outline-ring/50;
-  }
-  body {
-    @apply bg-background text-foreground;
-  }
-  html {
-    @apply font-sans;
-  }
-}
+::-webkit-scrollbar-track { background: #0F1419; }
+::-webkit-scrollbar-thumb { background: #2A3544; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #6B7280; }

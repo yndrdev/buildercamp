@@ -23,7 +23,7 @@ export default async function HomePage() {
   }
 
   return (
-    <div>
+    <div className="max-w-[720px] mx-auto px-6 pt-[60px] pb-16">
       <div className="flex items-center gap-3 mb-12 animate-fade-in">
         <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#E8703A] to-[#D4A574] flex items-center justify-center text-xs font-bold text-white">
           BC
