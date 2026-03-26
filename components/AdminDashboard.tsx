@@ -24,7 +24,7 @@ interface Props {
   questions: Question[]; submissions: Submission[]; conversations: Conversation[]
 }
 
-const ADMIN_PIN = 'yndr2026'
+const ADMIN_PIN = 'yndr'
 
 export default function AdminDashboard({ clientSlug, clientName, sessionGroups, questions, submissions, conversations }: Props) {
   const [authenticated, setAuthenticated] = useState(false)
