@@ -274,8 +274,12 @@ export default function IntakeForm({ client, sessionGroups, questions }: Props) 
       {/* Success */}
       {view === 'success' && selectedGroup && (
         <SuccessScreen
+          clientId={client.id}
           clientName={client.name}
           sessionName={selectedGroup.name}
+          respondentName={name}
+          respondentRole={role}
+          answers={answers}
           onSubmitAnother={handleSubmitAnother}
         />
       )}
