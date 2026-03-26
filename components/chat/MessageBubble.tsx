@@ -20,9 +20,7 @@ export default function MessageBubble({ message, index }: Props) {
       className={cn('flex', isUser ? 'justify-end' : 'justify-start')}
     >
       {!isUser && (
-        <div className="w-7 h-7 rounded-full bg-gradient-to-br from-[var(--gold)] to-[var(--coral)] flex items-center justify-center text-[9px] font-bold text-white mr-3 mt-1 shrink-0">
-          BC
-        </div>
+        <img src="/avatar.svg" alt="" className="w-8 h-8 rounded-full mr-3 mt-1 shrink-0" />
       )}
       <div className={cn(
         'max-w-[75%] text-[14px] leading-[1.65]',

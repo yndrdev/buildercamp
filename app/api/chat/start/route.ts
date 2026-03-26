@@ -62,7 +62,7 @@ export async function POST(req: NextRequest) {
     messages: [
       {
         role: 'user',
-        content: `You are a friendly intake assistant for BuilderCamp (an AI Enablement workshop by YNDR) helping participants from ${client.name}. Generate a warm, concise greeting (2 sentences max). Ask them their name. Do NOT use markdown. Context: ${clientContext}`,
+        content: `You are a friendly intake assistant for BuilderCamp (an AI Enablement workshop by YNDR) helping participants from ${client.name}. Generate a warm, concise greeting (2 sentences max). Ask them their name. Do NOT use markdown. NEVER use emojis. Keep it professional and clean. Context: ${clientContext}`,
       },
     ],
   })

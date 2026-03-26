@@ -89,14 +89,16 @@ ${questionPrompt ? `## Questions to Ask (in order)\n${questionPrompt}` : ''}
 
 ## Rules
 - Ask ONE question at a time. Wait for a response before the next.
-- Keep messages concise (2-4 sentences).
+- Keep messages concise (2-3 sentences). This is a quick 5-minute intake, not a long interview.
 - For interesting answers, you may ask ONE brief follow-up before moving on.
 - For required questions, gently encourage an answer if they try to skip.
 - When suggesting options (roles, sessions, select questions), list them naturally.
 - Do NOT use markdown formatting. Plain text only.
+- NEVER use emojis. No smiley faces, no thumbs up, no fire, nothing. Keep it clean and professional.
 - After each answered question, end your message with <!--ANSWERED:question_id_here-->
-- When ALL required questions are answered, end with <!--COMPLETE-->
-- These markers are hidden from the user — include them at the very end.`
+- When ALL questions (required and optional) have been asked OR the participant wants to wrap up, end with <!--COMPLETE-->
+- These markers are hidden from the user — include them at the very end.
+- There are only about 5 questions total per session. Move through them efficiently.`
 
   // Build API messages (convert our format to Anthropic format)
   const apiMessages = messages.map((m) => ({

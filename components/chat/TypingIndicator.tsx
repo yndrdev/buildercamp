@@ -9,9 +9,7 @@ export default function TypingIndicator() {
       animate={{ opacity: 1, y: 0 }}
       className="flex justify-start"
     >
-      <div className="w-7 h-7 rounded-full bg-gradient-to-br from-[var(--gold)] to-[var(--coral)] flex items-center justify-center text-[9px] font-bold text-white mr-3 mt-1 shrink-0">
-        BC
-      </div>
+      <img src="/avatar.svg" alt="" className="w-8 h-8 rounded-full mr-3 mt-1 shrink-0" />
       <div className="bg-[var(--surface-elevated)] border border-[var(--border)] rounded-[var(--radius-xl)] rounded-bl-[var(--radius-sm)] px-5 py-4">
         <span className="inline-flex gap-2 items-center">
           {[0, 1, 2].map((i) => (
