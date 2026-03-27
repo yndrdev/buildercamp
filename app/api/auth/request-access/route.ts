@@ -27,24 +27,22 @@ export async function POST(req: NextRequest) {
     )
   }
 
-  // Send magic link via Supabase Auth using anon key (signInWithOtp works with anon)
+  // Send OTP code via Supabase Auth (no redirect URL needed)
   const authClient = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
   )
 
-  const origin = req.headers.get('origin') || 'https://www.buildercamp.ai'
-
   const { error } = await authClient.auth.signInWithOtp({
     email,
     options: {
-      emailRedirectTo: `${origin}/api/auth/callback`,
+      shouldCreateUser: true,
     },
   })
 
   if (error) {
-    return NextResponse.json({ error: 'Failed to send access link. Please try again.' }, { status: 500 })
+    return NextResponse.json({ error: 'Failed to send access code. Please try again.' }, { status: 500 })
   }
 
-  return NextResponse.json({ success: true })
+  return NextResponse.json({ success: true, clientSlug: matchedClient.slug })
 }

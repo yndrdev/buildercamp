@@ -2,25 +2,28 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createSupabaseServer } from '@/lib/supabase-server'
 import { supabase } from '@/lib/supabase'
 
-export async function GET(req: NextRequest) {
-  const { searchParams } = new URL(req.url)
-  const code = searchParams.get('code')
-  const origin = req.headers.get('origin') || new URL(req.url).origin
+export async function POST(req: NextRequest) {
+  const { email, code } = await req.json()
 
-  if (!code) {
-    return NextResponse.redirect(`${origin}/?error=no_code`)
+  if (!email || !code) {
+    return NextResponse.json({ error: 'Email and code required' }, { status: 400 })
   }
 
   const supabaseAuth = createSupabaseServer()
 
-  const { data: { user }, error } = await supabaseAuth.auth.exchangeCodeForSession(code)
+  // Verify the OTP code
+  const { data: { user }, error } = await supabaseAuth.auth.verifyOtp({
+    email,
+    token: code,
+    type: 'email',
+  })
 
-  if (error || !user?.email) {
-    return NextResponse.redirect(`${origin}/?error=auth_failed`)
+  if (error || !user) {
+    return NextResponse.json({ error: 'Invalid or expired code. Please try again.' }, { status: 401 })
   }
 
   // Find client by email domain
-  const domain = user.email.split('@')[1].toLowerCase()
+  const domain = email.split('@')[1].toLowerCase()
   const { data: clients } = await supabase
     .from('clients')
     .select('id, slug, allowed_domains')
@@ -31,7 +34,7 @@ export async function GET(req: NextRequest) {
 
   if (!matchedClient) {
     await supabaseAuth.auth.signOut()
-    return NextResponse.redirect(`${origin}/?error=domain_not_authorized`)
+    return NextResponse.json({ error: 'Domain not authorized' }, { status: 403 })
   }
 
   // Upsert user profile
@@ -52,10 +55,10 @@ export async function GET(req: NextRequest) {
       .insert({
         auth_user_id: user.id,
         client_id: matchedClient.id,
-        email: user.email,
-        display_name: user.email.split('@')[0],
+        email,
+        display_name: email.split('@')[0],
       })
   }
 
-  return NextResponse.redirect(`${origin}/${matchedClient.slug}`)
+  return NextResponse.json({ success: true, clientSlug: matchedClient.slug })
 }
