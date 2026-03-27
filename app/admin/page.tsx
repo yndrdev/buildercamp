@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Lock, Plus, ArrowRight, Lightning, Users, ChatDots, CaretDown, CaretUp, Link as LinkIcon, Spinner, X } from '@phosphor-icons/react'
+import { Lock, Plus, Users, ChatDots, Link as LinkIcon, Spinner, X } from '@phosphor-icons/react'
 
 const ADMIN_PIN = 'yndr'
 
@@ -11,13 +11,6 @@ interface Client {
   created_at: string; conversationCount: number; submissionCount: number
 }
 
-interface ActionPlan {
-  workshop_brief: string
-  pain_points: { area: string; description: string; affected_roles: string[]; priority: string }[]
-  action_items: { title: string; description: string; owner: string; timeline: string; prompt: string }[]
-  session_recommendations: { session: string; focus_areas: string[]; demo_ideas: string[]; customization_notes: string }[]
-  quick_wins: { title: string; description: string; impact: string }[]
-}
 
 export default function AdminPage() {
   const [authenticated, setAuthenticated] = useState(false)
@@ -32,9 +25,6 @@ export default function AdminPage() {
   const [newRoles, setNewRoles] = useState('')
   const [newDomains, setNewDomains] = useState('')
   const [creating, setCreating] = useState(false)
-  const [actionPlan, setActionPlan] = useState<{ clientId: string; plan: ActionPlan; count: number } | null>(null)
-  const [generatingPlan, setGeneratingPlan] = useState<string | null>(null)
-  const [expandedPrompt, setExpandedPrompt] = useState<number | null>(null)
 
   useEffect(() => {
     if (authenticated) fetchClients()
@@ -70,20 +60,7 @@ export default function AdminPage() {
     fetchClients()
   }
 
-  async function generateActionPlan(clientId: string) {
-    setGeneratingPlan(clientId)
-    setActionPlan(null)
-    const res = await fetch('/api/admin/action-plan', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ clientId }),
-    })
-    const data = await res.json()
-    if (data.plan) {
-      setActionPlan({ clientId, plan: data.plan, count: data.participantCount })
-    }
-    setGeneratingPlan(null)
-  }
+
 
   // PIN gate
   if (!authenticated) {
@@ -193,163 +170,38 @@ export default function AdminPage() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-10">
           {clients.map((client) => (
-            <motion.div key={client.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
-              className="border border-[var(--border)] rounded-[var(--radius-xl)] bg-[var(--surface)] p-5 hover:border-[var(--coral)]/20 transition-all group">
-              <div className="flex items-start justify-between mb-4">
-                <div>
-                  <h3 className="text-[15px] font-semibold text-[var(--text-primary)] tracking-tight">{client.name}</h3>
-                  <div className="flex items-center gap-1.5 mt-1">
-                    <LinkIcon weight="bold" className="w-3 h-3 text-[var(--text-muted)]" />
-                    <span className="text-[11px] text-[var(--coral)] font-mono">/{client.slug}</span>
+            <a key={client.id} href={`/admin/${client.slug}`}>
+              <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
+                whileHover={{ y: -2, borderColor: 'rgba(242, 101, 72, 0.3)' }}
+                className="border border-[var(--border)] rounded-[var(--radius-xl)] bg-[var(--surface)] p-5 cursor-pointer transition-all">
+                <div className="flex items-start justify-between mb-3">
+                  <div>
+                    <h3 className="text-[15px] font-semibold text-[var(--text-primary)] tracking-tight">{client.name}</h3>
+                    <div className="flex items-center gap-1.5 mt-1">
+                      <LinkIcon weight="bold" className="w-3 h-3 text-[var(--text-muted)]" />
+                      <span className="text-[11px] text-[var(--coral)] font-mono">/{client.slug}</span>
+                    </div>
+                  </div>
+                  <span className="text-[10px] text-[var(--text-muted)] font-mono">
+                    {new Date(client.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                  </span>
+                </div>
+                <div className="flex gap-4">
+                  <div className="flex items-center gap-1.5">
+                    <ChatDots weight="bold" className="w-3.5 h-3.5 text-[var(--text-muted)]" />
+                    <span className="text-[12px] text-[var(--text-secondary)]">{client.conversationCount} conversation{client.conversationCount !== 1 ? 's' : ''}</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <Users weight="bold" className="w-3.5 h-3.5 text-[var(--text-muted)]" />
+                    <span className="text-[12px] text-[var(--text-secondary)]">{client.submissionCount} form{client.submissionCount !== 1 ? 's' : ''}</span>
                   </div>
                 </div>
-                <span className="text-[10px] text-[var(--text-muted)] font-mono">
-                  {new Date(client.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                </span>
-              </div>
-
-              <div className="flex gap-4 mb-4">
-                <div className="flex items-center gap-1.5">
-                  <ChatDots weight="bold" className="w-3.5 h-3.5 text-[var(--text-muted)]" />
-                  <span className="text-[12px] text-[var(--text-secondary)]">{client.conversationCount} conversation{client.conversationCount !== 1 ? 's' : ''}</span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <Users weight="bold" className="w-3.5 h-3.5 text-[var(--text-muted)]" />
-                  <span className="text-[12px] text-[var(--text-secondary)]">{client.submissionCount} form{client.submissionCount !== 1 ? 's' : ''}</span>
-                </div>
-              </div>
-
-              <div className="flex gap-2">
-                <a href={`/${client.slug}`} target="_blank"
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-[var(--radius-full)] text-[11px] font-medium bg-[var(--surface-elevated)] text-[var(--text-secondary)] border border-[var(--border)] hover:text-[var(--text-primary)] hover:border-[var(--coral)]/30 transition-all">
-                  Intake <ArrowRight weight="bold" className="w-3 h-3" />
-                </a>
-                <a href={`/${client.slug}/responses`}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-[var(--radius-full)] text-[11px] font-medium bg-[var(--surface-elevated)] text-[var(--text-secondary)] border border-[var(--border)] hover:text-[var(--text-primary)] hover:border-[var(--coral)]/30 transition-all">
-                  Responses
-                </a>
-                <button onClick={() => generateActionPlan(client.id)} disabled={generatingPlan === client.id}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-[var(--radius-full)] text-[11px] font-medium bg-[var(--coral)]/8 text-[var(--coral)] border border-[var(--coral)]/20 hover:bg-[var(--coral)]/15 disabled:opacity-50 transition-all">
-                  {generatingPlan === client.id ? <Spinner weight="bold" className="w-3 h-3 animate-spin" /> : <Lightning weight="fill" className="w-3 h-3" />}
-                  Action Plan
-                </button>
-              </div>
-            </motion.div>
+              </motion.div>
+            </a>
           ))}
         </div>
       )}
 
-      {/* Action Plan display */}
-      <AnimatePresence>
-        {actionPlan && (
-          <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 12 }}
-            className="border border-[var(--coral)]/20 rounded-[var(--radius-xl)] bg-[var(--surface)] overflow-hidden">
-            <div className="p-6 border-b border-[var(--border)]">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Lightning weight="fill" className="w-5 h-5 text-[var(--coral)]" />
-                  <h2 className="text-[16px] font-semibold text-[var(--text-primary)]">
-                    Action Plan ({clients.find((c) => c.id === actionPlan.clientId)?.name})
-                  </h2>
-                </div>
-                <button onClick={() => setActionPlan(null)} className="text-[var(--text-muted)] hover:text-[var(--text-primary)]">
-                  <X weight="bold" className="w-4 h-4" />
-                </button>
-              </div>
-              <p className="text-[12px] text-[var(--text-muted)] mt-1">Based on {actionPlan.count} completed intake{actionPlan.count !== 1 ? 's' : ''}</p>
-            </div>
-
-            <div className="p-6 space-y-6">
-              {/* Brief */}
-              {actionPlan.plan.workshop_brief && (
-                <div>
-                  <h3 className="text-[11px] font-bold tracking-[0.1em] uppercase text-[var(--coral)] mb-2">Workshop Brief</h3>
-                  <p className="text-[14px] text-[var(--text-primary)] leading-relaxed">{actionPlan.plan.workshop_brief}</p>
-                </div>
-              )}
-
-              {/* Quick Wins */}
-              {actionPlan.plan.quick_wins?.length > 0 && (
-                <div>
-                  <h3 className="text-[11px] font-bold tracking-[0.1em] uppercase text-[var(--coral)] mb-3">Quick Wins</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                    {actionPlan.plan.quick_wins.map((win, i) => (
-                      <div key={i} className="p-3 rounded-[var(--radius-md)] bg-[var(--surface-elevated)] border border-[var(--border)]">
-                        <div className="text-[13px] font-medium text-[var(--text-primary)] mb-1">{win.title}</div>
-                        <div className="text-[11px] text-[var(--text-muted)]">{win.description}</div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Pain Points */}
-              {actionPlan.plan.pain_points?.length > 0 && (
-                <div>
-                  <h3 className="text-[11px] font-bold tracking-[0.1em] uppercase text-[var(--coral)] mb-3">Pain Points</h3>
-                  <div className="space-y-2">
-                    {actionPlan.plan.pain_points.map((pp, i) => (
-                      <div key={i} className="flex items-start gap-3 p-3 rounded-[var(--radius-md)] bg-[var(--surface-elevated)] border border-[var(--border)]">
-                        <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded mt-0.5 shrink-0 ${pp.priority === 'high' ? 'bg-[var(--coral)]/15 text-[var(--coral)]' : 'bg-[var(--surface)] text-[var(--text-muted)]'}`}>
-                          {pp.priority}
-                        </span>
-                        <div>
-                          <div className="text-[13px] font-medium text-[var(--text-primary)]">{pp.area}</div>
-                          <div className="text-[11px] text-[var(--text-muted)] mt-0.5">{pp.description}</div>
-                          {pp.affected_roles?.length > 0 && (
-                            <div className="flex gap-1 mt-1.5">
-                              {pp.affected_roles.map((role, ri) => (
-                                <span key={ri} className="text-[9px] px-2 py-0.5 rounded-[var(--radius-full)] bg-[var(--surface)] text-[var(--text-muted)] border border-[var(--border)]">{role}</span>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Action Items with Prompts */}
-              {actionPlan.plan.action_items?.length > 0 && (
-                <div>
-                  <h3 className="text-[11px] font-bold tracking-[0.1em] uppercase text-[var(--coral)] mb-3">Action Items</h3>
-                  <div className="space-y-2">
-                    {actionPlan.plan.action_items.map((item, i) => (
-                      <div key={i} className="rounded-[var(--radius-md)] bg-[var(--surface-elevated)] border border-[var(--border)] overflow-hidden">
-                        <div className="p-3">
-                          <div className="flex items-center justify-between mb-1">
-                            <div className="text-[13px] font-medium text-[var(--text-primary)]">{item.title}</div>
-                            <span className="text-[10px] text-[var(--text-muted)]">{item.timeline}</span>
-                          </div>
-                          <div className="text-[11px] text-[var(--text-muted)] mb-2">{item.description}</div>
-                          {item.prompt && (
-                            <button onClick={() => setExpandedPrompt(expandedPrompt === i ? null : i)}
-                              className="flex items-center gap-1.5 text-[11px] font-medium text-[var(--coral)] hover:text-[var(--coral-light)]">
-                              <Lightning weight="fill" className="w-3 h-3" />
-                              {expandedPrompt === i ? 'Hide' : 'View'} Claude Prompt
-                              {expandedPrompt === i ? <CaretUp className="w-3 h-3" /> : <CaretDown className="w-3 h-3" />}
-                            </button>
-                          )}
-                        </div>
-                        {expandedPrompt === i && item.prompt && (
-                          <div className="border-t border-[var(--border)] p-3 bg-[var(--bg)]">
-                            <pre className="text-[12px] text-[var(--gold)] whitespace-pre-wrap font-mono leading-relaxed">{item.prompt}</pre>
-                            <button onClick={() => navigator.clipboard.writeText(item.prompt)}
-                              className="mt-2 text-[10px] font-medium text-[var(--coral)] hover:text-[var(--coral-light)]">
-                              Copy to clipboard
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
     </div>
   )
 }
