@@ -3,7 +3,8 @@
 import { useState, useEffect } from 'react'
 import { useParams } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Lock, ArrowLeft, Lightning, ChatDots, FileText, CaretDown, CaretUp, Spinner, Link as LinkIcon, ArrowSquareOut } from '@phosphor-icons/react'
+import { Lock, ArrowLeft, Lightning, ChatDots, FileText, CaretDown, CaretUp, Spinner, Link as LinkIcon, ArrowSquareOut, UserPlus, Upload, Trash, UsersThree } from '@phosphor-icons/react'
+import Papa from 'papaparse'
 
 const ADMIN_PIN = 'yndr'
 
@@ -23,6 +24,11 @@ interface Submission {
 
 interface SessionGroup { id: string; name: string }
 interface Question { id: string; session_group_id: string; label: string }
+
+interface ClientUser {
+  id: string; email: string; name: string | null; role: string | null
+  department: string | null; status: string; invited_at: string
+}
 
 interface ActionPlan {
   workshop_brief: string
@@ -56,12 +62,18 @@ export default function AdminClientDetail() {
   const [submissions, setSubmissions] = useState<Submission[]>([])
   const [sessionGroups, setSessionGroups] = useState<SessionGroup[]>([])
   const [questions, setQuestions] = useState<Question[]>([])
+  const [clientUsers, setClientUsers] = useState<ClientUser[]>([])
   const [loading, setLoading] = useState(true)
   const [expandedId, setExpandedId] = useState<string | null>(null)
-  const [activeTab, setActiveTab] = useState<'conversations' | 'forms'>('conversations')
+  const [activeTab, setActiveTab] = useState<'users' | 'conversations' | 'forms'>('users')
   const [actionPlan, setActionPlan] = useState<ActionPlan | null>(null)
   const [generatingPlan, setGeneratingPlan] = useState(false)
   const [expandedPrompt, setExpandedPrompt] = useState<number | null>(null)
+  const [showAddUser, setShowAddUser] = useState(false)
+  const [newUserName, setNewUserName] = useState('')
+  const [newUserEmail, setNewUserEmail] = useState('')
+  const [newUserRole, setNewUserRole] = useState('')
+  const [uploading, setUploading] = useState(false)
 
   useEffect(() => {
     if (authenticated) fetchData()
@@ -81,18 +93,73 @@ export default function AdminClientDetail() {
     const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
     const headers = { 'apikey': anonKey, 'Authorization': `Bearer ${anonKey}` }
 
-    const [sgRes, qRes, convRes, subRes] = await Promise.all([
+    const [sgRes, qRes, convRes, subRes, usersRes] = await Promise.all([
       fetch(`${baseUrl}/rest/v1/session_groups?client_id=eq.${match.id}&order=sort_order`, { headers }),
       fetch(`${baseUrl}/rest/v1/questions?order=sort_order`, { headers }),
       fetch(`${baseUrl}/rest/v1/conversations?client_id=eq.${match.id}&order=started_at.desc`, { headers }),
       fetch(`${baseUrl}/rest/v1/submissions?client_id=eq.${match.id}&order=submitted_at.desc`, { headers }),
+      fetch(`/api/admin/users?clientId=${match.id}`),
     ])
 
     setSessionGroups(await sgRes.json())
     setQuestions(await qRes.json())
     setConversations(await convRes.json())
     setSubmissions(await subRes.json())
+    const usersData = await usersRes.json()
+    setClientUsers(usersData.users || [])
     setLoading(false)
+  }
+
+  async function addSingleUser() {
+    if (!client || !newUserEmail.includes('@')) return
+    await fetch('/api/admin/users', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ clientId: client.id, users: [{ email: newUserEmail, name: newUserName, role: newUserRole }] }),
+    })
+    setNewUserEmail(''); setNewUserName(''); setNewUserRole(''); setShowAddUser(false)
+    const res = await fetch(`/api/admin/users?clientId=${client.id}`)
+    const data = await res.json()
+    setClientUsers(data.users || [])
+  }
+
+  async function handleCsvUpload(file: File) {
+    if (!client) return
+    setUploading(true)
+    Papa.parse(file, {
+      header: true,
+      skipEmptyLines: true,
+      complete: async (results) => {
+        const users = (results.data as Record<string, string>[]).map((row) => ({
+          email: row.email || row.Email || row.EMAIL || '',
+          name: row.name || row.Name || row.NAME || row['Full Name'] || row['full name'] || '',
+          role: row.role || row.Role || row.ROLE || row.title || row.Title || row['Job Title'] || '',
+          department: row.department || row.Department || row.DEPARTMENT || '',
+        })).filter((u: { email: string }) => u.email.includes('@'))
+
+        if (users.length > 0) {
+          await fetch('/api/admin/users', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ clientId: client.id, users }),
+          })
+          const res = await fetch(`/api/admin/users?clientId=${client.id}`)
+          const data = await res.json()
+          setClientUsers(data.users || [])
+        }
+        setUploading(false)
+      },
+      error: () => setUploading(false),
+    })
+  }
+
+  async function removeUser(userId: string) {
+    await fetch('/api/admin/users', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId }),
+    })
+    setClientUsers((prev) => prev.filter((u) => u.id !== userId))
   }
 
   async function generateActionPlan() {
@@ -251,6 +318,10 @@ export default function AdminClientDetail() {
 
       {/* Tabs */}
       <div className="flex gap-2 mb-6">
+        <button onClick={() => setActiveTab('users')}
+          className={`flex items-center gap-2 px-4 py-2 rounded-[var(--radius-full)] text-[13px] font-medium transition-all ${activeTab === 'users' ? 'bg-[var(--coral)] text-white' : 'bg-[var(--surface)] text-[var(--text-secondary)] border border-[var(--border)]'}`}>
+          <UsersThree weight="bold" className="w-3.5 h-3.5" /> Users ({clientUsers.length})
+        </button>
         <button onClick={() => setActiveTab('conversations')}
           className={`flex items-center gap-2 px-4 py-2 rounded-[var(--radius-full)] text-[13px] font-medium transition-all ${activeTab === 'conversations' ? 'bg-[var(--coral)] text-white' : 'bg-[var(--surface)] text-[var(--text-secondary)] border border-[var(--border)]'}`}>
           <ChatDots weight="bold" className="w-3.5 h-3.5" /> Conversations ({conversations.length})
@@ -260,6 +331,100 @@ export default function AdminClientDetail() {
           <FileText weight="bold" className="w-3.5 h-3.5" /> Forms ({submissions.length})
         </button>
       </div>
+
+      {/* Users */}
+      {activeTab === 'users' && (
+        <div>
+          {/* Actions bar */}
+          <div className="flex items-center gap-2 mb-4">
+            <button onClick={() => setShowAddUser(true)}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-[var(--radius-full)] text-[12px] font-medium bg-[var(--coral)] text-white hover:bg-[var(--coral-light)] transition-colors">
+              <UserPlus weight="bold" className="w-3.5 h-3.5" /> Add User
+            </button>
+            <label className="flex items-center gap-1.5 px-3 py-2 rounded-[var(--radius-full)] text-[12px] font-medium bg-[var(--surface)] text-[var(--text-secondary)] border border-[var(--border)] hover:border-[var(--coral)]/30 cursor-pointer transition-all">
+              <Upload weight="bold" className="w-3.5 h-3.5" />
+              {uploading ? 'Uploading...' : 'Upload CSV'}
+              <input type="file" accept=".csv,.xlsx,.xls" className="hidden" onChange={(e) => {
+                const file = e.target.files?.[0]
+                if (file) handleCsvUpload(file)
+                e.target.value = ''
+              }} />
+            </label>
+            <span className="text-[11px] text-[var(--text-muted)] ml-2">CSV columns: email, name, role, department</span>
+          </div>
+
+          {/* Add user inline form */}
+          <AnimatePresence>
+            {showAddUser && (
+              <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }}
+                className="mb-4 overflow-hidden">
+                <div className="p-4 rounded-[var(--radius-lg)] bg-[var(--surface)] border border-[var(--border)] flex gap-2 items-end">
+                  <div className="flex-1">
+                    <label className="text-[10px] text-[var(--text-muted)] block mb-1">Name</label>
+                    <input value={newUserName} onChange={(e) => setNewUserName(e.target.value)} placeholder="Jane Smith"
+                      className="w-full bg-[var(--bg)] border border-[var(--border)] rounded-[var(--radius-sm)] px-3 py-2 text-[13px] text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-1 focus:ring-[var(--coral)]/30" />
+                  </div>
+                  <div className="flex-1">
+                    <label className="text-[10px] text-[var(--text-muted)] block mb-1">Email *</label>
+                    <input value={newUserEmail} onChange={(e) => setNewUserEmail(e.target.value)} placeholder="jane@company.com" type="email"
+                      className="w-full bg-[var(--bg)] border border-[var(--border)] rounded-[var(--radius-sm)] px-3 py-2 text-[13px] text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-1 focus:ring-[var(--coral)]/30" />
+                  </div>
+                  <div className="flex-1">
+                    <label className="text-[10px] text-[var(--text-muted)] block mb-1">Role</label>
+                    <input value={newUserRole} onChange={(e) => setNewUserRole(e.target.value)} placeholder="VP of Sales"
+                      className="w-full bg-[var(--bg)] border border-[var(--border)] rounded-[var(--radius-sm)] px-3 py-2 text-[13px] text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-1 focus:ring-[var(--coral)]/30" />
+                  </div>
+                  <button onClick={addSingleUser} disabled={!newUserEmail.includes('@')}
+                    className="px-4 py-2 rounded-[var(--radius-sm)] bg-[var(--coral)] text-white text-[12px] font-medium disabled:opacity-30 hover:bg-[var(--coral-light)] transition-colors shrink-0">
+                    Add
+                  </button>
+                  <button onClick={() => setShowAddUser(false)} className="text-[var(--text-muted)] hover:text-[var(--text-primary)] shrink-0 p-2">
+                    <CaretUp weight="bold" className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Users list */}
+          {clientUsers.length === 0 ? (
+            <div className="text-center py-16 text-[var(--text-muted)] text-[14px]">
+              No users yet. Add them manually or upload a CSV.
+            </div>
+          ) : (
+            <div className="border border-[var(--border)] rounded-[var(--radius-lg)] overflow-hidden">
+              {/* Header */}
+              <div className="grid grid-cols-12 gap-2 px-4 py-2.5 bg-[var(--surface-elevated)] text-[10px] font-bold tracking-[0.08em] uppercase text-[var(--text-muted)]">
+                <div className="col-span-3">Name</div>
+                <div className="col-span-3">Email</div>
+                <div className="col-span-2">Role</div>
+                <div className="col-span-2">Department</div>
+                <div className="col-span-1">Status</div>
+                <div className="col-span-1"></div>
+              </div>
+              {/* Rows */}
+              {clientUsers.map((user) => (
+                <div key={user.id} className="grid grid-cols-12 gap-2 px-4 py-3 border-t border-[var(--border)] hover:bg-[var(--surface-hover)] transition-colors items-center">
+                  <div className="col-span-3 text-[13px] text-[var(--text-primary)] truncate">{user.name || '-'}</div>
+                  <div className="col-span-3 text-[12px] text-[var(--text-secondary)] font-mono truncate">{user.email}</div>
+                  <div className="col-span-2 text-[12px] text-[var(--text-secondary)] truncate">{user.role || '-'}</div>
+                  <div className="col-span-2 text-[12px] text-[var(--text-muted)] truncate">{user.department || '-'}</div>
+                  <div className="col-span-1">
+                    <span className={`text-[9px] font-semibold px-2 py-0.5 rounded-[var(--radius-full)] ${user.status === 'active' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-amber-500/10 text-amber-400'}`}>
+                      {user.status}
+                    </span>
+                  </div>
+                  <div className="col-span-1 flex justify-end">
+                    <button onClick={() => removeUser(user.id)} className="text-[var(--text-muted)] hover:text-red-400 transition-colors p-1">
+                      <Trash weight="bold" className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Conversations */}
       {activeTab === 'conversations' && (
