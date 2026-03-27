@@ -31,6 +31,14 @@ interface ActionPlan {
   quick_wins: { title: string; description: string; impact: string }[]
 }
 
+function checkAdminCookie() {
+  return document.cookie.split(';').some((c) => c.trim().startsWith('bc_admin='))
+}
+
+function setAdminCookie() {
+  document.cookie = 'bc_admin=1; path=/admin; max-age=86400; SameSite=Lax'
+}
+
 export default function AdminClientDetail() {
   const params = useParams()
   const clientSlug = params.clientSlug as string
@@ -38,6 +46,10 @@ export default function AdminClientDetail() {
   const [authenticated, setAuthenticated] = useState(false)
   const [pin, setPin] = useState('')
   const [pinError, setPinError] = useState(false)
+
+  useEffect(() => {
+    if (checkAdminCookie()) setAuthenticated(true)
+  }, [])
 
   const [client, setClient] = useState<{ id: string; name: string; slug: string; allowed_domains: string[] } | null>(null)
   const [conversations, setConversations] = useState<Conversation[]>([])
@@ -104,7 +116,7 @@ export default function AdminClientDetail() {
           <Lock weight="bold" className="w-6 h-6 text-[var(--coral)] mx-auto mb-4" />
           <h1 className="text-xl font-semibold text-[var(--text-primary)] tracking-tight mb-1">Admin Access</h1>
         </div>
-        <form onSubmit={(e) => { e.preventDefault(); if (pin === ADMIN_PIN) setAuthenticated(true); else { setPinError(true); setPin('') } }}>
+        <form onSubmit={(e) => { e.preventDefault(); if (pin === ADMIN_PIN) { setAdminCookie(); setAuthenticated(true) } else { setPinError(true); setPin('') } }}>
           <input type="password" value={pin} onChange={(e) => { setPin(e.target.value); setPinError(false) }}
             placeholder="Enter PIN" autoFocus
             className={`w-full bg-[var(--surface)] border ${pinError ? 'border-red-500' : 'border-[var(--border)]'} rounded-[var(--radius-md)] px-4 py-3 text-center text-[var(--text-primary)] placeholder:text-[var(--text-muted)] text-lg tracking-[0.3em] focus:outline-none focus:ring-2 focus:ring-[var(--coral)]/40 mb-3`} />
