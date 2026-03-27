@@ -133,17 +133,10 @@ export default function AdminPage() {
                       placeholder="big-green-egg" className="flex-1 bg-transparent py-2.5 pr-4 text-[14px] text-[var(--coral)] placeholder:text-[var(--text-muted)] focus:outline-none" />
                   </div>
                 </div>
-                <div>
-                  <label className="text-[12px] font-medium text-[var(--text-secondary)] block mb-1.5">Session Tracks (one per line, name:description)</label>
-                  <textarea value={newSessions} onChange={(e) => setNewSessions(e.target.value)} rows={3}
-                    placeholder={"Leadership: Strategy and planning\nEngineering: Technical deep-dive\nSales: Client engagement"}
-                    className="w-full bg-[var(--bg)] border border-[var(--border)] rounded-[var(--radius-md)] px-4 py-2.5 text-[13px] text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--coral)]/40 resize-none" />
-                </div>
-                <div>
-                  <label className="text-[12px] font-medium text-[var(--text-secondary)] block mb-1.5">Roles (one per line)</label>
-                  <textarea value={newRoles} onChange={(e) => setNewRoles(e.target.value)} rows={3}
-                    placeholder={"CEO\nCTO\nVP of Engineering\nProduct Manager"}
-                    className="w-full bg-[var(--bg)] border border-[var(--border)] rounded-[var(--radius-md)] px-4 py-2.5 text-[13px] text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--coral)]/40 resize-none" />
+                <div className="p-3 rounded-[var(--radius-md)] bg-[var(--bg)] border border-[var(--border)]">
+                  <p className="text-[11px] text-[var(--text-muted)] leading-relaxed">
+                    Standard tracks auto-created: <span className="text-[var(--text-secondary)]">Leadership, Business Operations, Technology</span> with 5 questions each and 13 standard roles.
+                  </p>
                 </div>
                 <div>
                   <label className="text-[12px] font-medium text-[var(--text-secondary)] block mb-1.5">Allowed Email Domains (comma-separated)</label>
