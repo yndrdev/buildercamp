@@ -53,6 +53,11 @@ export async function POST(req: NextRequest) {
   )
   const supabaseAuth = createSupabaseServer()
 
+  // Debug: verify service role key is present
+  console.log('SERVICE_ROLE_KEY exists:', !!process.env.SUPABASE_SERVICE_ROLE_KEY)
+  console.log('SERVICE_ROLE_KEY length:', process.env.SUPABASE_SERVICE_ROLE_KEY?.length)
+  console.log('SERVICE_ROLE_KEY starts with:', process.env.SUPABASE_SERVICE_ROLE_KEY?.substring(0, 10))
+
   // Generate magic link (creates auth user if needed)
   const { data: linkData, error: linkError } = await admin.auth.admin.generateLink({
     type: 'magiclink',
@@ -60,7 +65,10 @@ export async function POST(req: NextRequest) {
   })
 
   if (linkError || !linkData?.properties?.hashed_token) {
-    console.error('generateLink error:', linkError)
+    console.error('generateLink error message:', linkError?.message)
+    console.error('generateLink error status:', linkError?.status)
+    console.error('generateLink error name:', linkError?.name)
+    console.error('generateLink full:', JSON.stringify(linkError, null, 2))
     return NextResponse.json({ error: 'Failed to authenticate. Please try again.' }, { status: 500 })
   }
 
