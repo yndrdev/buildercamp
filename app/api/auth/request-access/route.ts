@@ -14,11 +14,13 @@ export async function POST(req: NextRequest) {
   const domain = normalizedEmail.split('@')[1]
 
   // 1. Check if user was individually pre-added in client_users
-  const { data: clientUser } = await supabase
+  const { data: clientUsers } = await supabase
     .from('client_users')
     .select('id, client_id, clients(id, slug, name)')
     .eq('email', normalizedEmail)
-    .single()
+    .limit(1)
+
+  const clientUser = clientUsers?.[0] || null
 
   // 2. Or check if their domain matches any client
   const { data: clients } = await supabase
