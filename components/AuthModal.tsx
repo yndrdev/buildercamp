@@ -1,8 +1,8 @@
 'use client'
 
-import { useState, useRef } from 'react'
+import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { X, EnvelopeSimple, CheckCircle, ArrowRight, CircleNotch, Warning, ShieldCheck } from '@phosphor-icons/react'
+import { X, EnvelopeSimple, CheckCircle, ArrowRight, CircleNotch, Warning } from '@phosphor-icons/react'
 import { useRouter } from 'next/navigation'
 
 interface Props {
@@ -10,19 +10,15 @@ interface Props {
   onClose: () => void
 }
 
-type Step = 'email' | 'sending' | 'code' | 'verifying' | 'success' | 'error'
+type Step = 'email' | 'sending' | 'success' | 'error'
 
 export default function AuthModal({ isOpen, onClose }: Props) {
   const [email, setEmail] = useState('')
-  const [code, setCode] = useState(['', '', '', '', '', ''])
   const [step, setStep] = useState<Step>('email')
   const [errorMsg, setErrorMsg] = useState('')
-  const [clientSlug, setClientSlug] = useState('')
-  const [cooldown, setCooldown] = useState(false)
-  const codeRefs = useRef<(HTMLInputElement | null)[]>([])
   const router = useRouter()
 
-  const handleEmailSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!email.trim() || !email.includes('@')) return
 
@@ -36,17 +32,10 @@ export default function AuthModal({ isOpen, onClose }: Props) {
       const data = await res.json()
 
       if (res.ok) {
-        setClientSlug(data.clientSlug || '')
-        if (data.autoVerified) {
-          // Domain or pre-added user — already authenticated, skip code entry
-          setStep('success')
-          setTimeout(() => {
-            router.push(`/${data.clientSlug || clientSlug}`)
-          }, 1200)
-        } else {
-          setStep('code')
-          setTimeout(() => codeRefs.current[0]?.focus(), 100)
-        }
+        setStep('success')
+        setTimeout(() => {
+          router.push(`/${data.clientSlug}`)
+        }, 1000)
       } else {
         setErrorMsg(data.error || 'Something went wrong.')
         setStep('error')
@@ -57,95 +46,11 @@ export default function AuthModal({ isOpen, onClose }: Props) {
     }
   }
 
-  const handleCodeChange = (index: number, value: string) => {
-    if (value.length > 1) value = value.slice(-1)
-    if (!/^\d*$/.test(value)) return
-
-    const newCode = [...code]
-    newCode[index] = value
-    setCode(newCode)
-
-    // Auto-advance to next input
-    if (value && index < 5) {
-      codeRefs.current[index + 1]?.focus()
-    }
-
-    // Auto-submit when all 6 digits entered
-    if (value && index === 5) {
-      const fullCode = newCode.join('')
-      if (fullCode.length === 6) {
-        verifyCode(fullCode)
-      }
-    }
-  }
-
-  const handleCodeKeyDown = (index: number, e: React.KeyboardEvent) => {
-    if (e.key === 'Backspace' && !code[index] && index > 0) {
-      codeRefs.current[index - 1]?.focus()
-    }
-  }
-
-  const handleCodePaste = (e: React.ClipboardEvent) => {
-    e.preventDefault()
-    const pasted = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6)
-    if (pasted.length === 6) {
-      const newCode = pasted.split('')
-      setCode(newCode)
-      verifyCode(pasted)
-    }
-  }
-
-  const verifyCode = async (fullCode: string) => {
-    setStep('verifying')
-    try {
-      const res = await fetch('/api/auth/verify', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: email.trim(), code: fullCode }),
-      })
-      const data = await res.json()
-
-      if (res.ok) {
-        setStep('success')
-        setTimeout(() => {
-          router.push(`/${data.clientSlug || clientSlug}`)
-        }, 1200)
-      } else {
-        setErrorMsg(data.error || 'Invalid code.')
-        setCode(['', '', '', '', '', ''])
-        setStep('code')
-        setTimeout(() => codeRefs.current[0]?.focus(), 100)
-      }
-    } catch {
-      setErrorMsg('Network error.')
-      setStep('code')
-    }
-  }
-
-  const handleResend = async () => {
-    setCooldown(true)
-    setCode(['', '', '', '', '', ''])
-    setStep('sending')
-    try {
-      const res = await fetch('/api/auth/request-access', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: email.trim() }),
-      })
-      if (res.ok) {
-        setStep('code')
-        setTimeout(() => codeRefs.current[0]?.focus(), 100)
-      }
-    } catch { /* ignore */ }
-    setTimeout(() => setCooldown(false), 60000)
-  }
-
   const handleClose = () => {
     onClose()
     setTimeout(() => {
       setStep('email')
       setEmail('')
-      setCode(['', '', '', '', '', ''])
       setErrorMsg('')
     }, 300)
   }
@@ -188,7 +93,7 @@ export default function AuthModal({ isOpen, onClose }: Props) {
                     <p className="text-[13px] text-[var(--text-muted)] mb-6 leading-relaxed">
                       Enter your work email to continue.
                     </p>
-                    <form onSubmit={handleEmailSubmit}>
+                    <form onSubmit={handleSubmit}>
                       <input
                         type="email"
                         value={email}
@@ -212,53 +117,10 @@ export default function AuthModal({ isOpen, onClose }: Props) {
                 )}
 
                 {/* Sending Step */}
-                {(step === 'sending' || step === 'verifying') && (
+                {step === 'sending' && (
                   <motion.div key="loading" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="text-center py-6">
                     <CircleNotch weight="bold" className="w-8 h-8 text-[var(--coral)] animate-spin mx-auto mb-4" />
-                    <p className="text-[14px] text-[var(--text-secondary)]">
-                      {step === 'sending' ? 'Connecting...' : 'Verifying...'}
-                    </p>
-                  </motion.div>
-                )}
-
-                {/* Code Entry Step */}
-                {step === 'code' && (
-                  <motion.div key="code" initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -10 }}>
-                    <div className="w-12 h-12 rounded-[var(--radius-lg)] bg-[var(--coral)]/8 border border-[var(--coral)]/15 flex items-center justify-center mb-5">
-                      <ShieldCheck weight="bold" className="w-5 h-5 text-[var(--coral)]" />
-                    </div>
-                    <h2 className="text-[18px] font-semibold text-[var(--text-primary)] tracking-tight mb-1">Enter Your Code</h2>
-                    <p className="text-[13px] text-[var(--text-muted)] mb-1">We sent a 6-digit code to</p>
-                    <p className="text-[13px] text-[var(--coral)] font-medium mb-6">{email}</p>
-
-                    {errorMsg && (
-                      <p className="text-[12px] text-red-400 mb-3 text-center">{errorMsg}</p>
-                    )}
-
-                    {/* 6-digit code input */}
-                    <div className="flex gap-2 justify-center mb-6" onPaste={handleCodePaste}>
-                      {code.map((digit, i) => (
-                        <input
-                          key={i}
-                          ref={(el) => { codeRefs.current[i] = el }}
-                          type="text"
-                          inputMode="numeric"
-                          maxLength={1}
-                          value={digit}
-                          onChange={(e) => handleCodeChange(i, e.target.value)}
-                          onKeyDown={(e) => handleCodeKeyDown(i, e)}
-                          className="w-11 h-13 bg-[var(--bg)] border border-[var(--border)] rounded-[var(--radius-md)] text-center text-[20px] font-bold text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--coral)]/30 focus:border-[var(--coral)]/40 transition-all"
-                        />
-                      ))}
-                    </div>
-
-                    <button
-                      onClick={handleResend}
-                      disabled={cooldown}
-                      className="w-full text-center text-[12px] text-[var(--gold)] hover:text-[var(--gold-light)] disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-                    >
-                      {cooldown ? 'Code sent. Check your email.' : 'Didn\'t receive it? Resend'}
-                    </button>
+                    <p className="text-[14px] text-[var(--text-secondary)]">Connecting...</p>
                   </motion.div>
                 )}
 
@@ -273,7 +135,7 @@ export default function AuthModal({ isOpen, onClose }: Props) {
                     >
                       <CheckCircle weight="fill" className="w-7 h-7 text-emerald-400" />
                     </motion.div>
-                    <h2 className="text-[18px] font-semibold text-[var(--text-primary)] tracking-tight mb-2">Verified</h2>
+                    <h2 className="text-[18px] font-semibold text-[var(--text-primary)] tracking-tight mb-2">Welcome</h2>
                     <p className="text-[13px] text-[var(--text-muted)]">Redirecting to your workspace...</p>
                   </motion.div>
                 )}

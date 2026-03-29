@@ -1,29 +1,18 @@
-import { createSupabaseServer } from '@/lib/supabase-server'
+import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
-import { supabase } from '@/lib/supabase'
 import LandingPage from '@/components/LandingPage'
 
 export const dynamic = 'force-dynamic'
 
 export default async function HomePage() {
-  // Check if user is already authenticated
-  const supabaseAuth = createSupabaseServer()
-  const { data: { user } } = await supabaseAuth.auth.getUser()
+  const cookieStore = cookies()
+  const session = cookieStore.get('bc_session')
 
-  if (user?.email) {
-    // Find their client by email domain
-    const domain = user.email.split('@')[1].toLowerCase()
-    const { data: clients } = await supabase
-      .from('clients')
-      .select('slug, allowed_domains')
-
-    const match = clients?.find((c) =>
-      (c.allowed_domains || []).some((d: string) => d.toLowerCase() === domain)
-    )
-
-    if (match) {
-      redirect(`/${match.slug}`)
-    }
+  if (session?.value) {
+    try {
+      const data = JSON.parse(Buffer.from(session.value, 'base64').toString())
+      if (data.clientSlug) redirect(`/${data.clientSlug}`)
+    } catch { /* invalid cookie, show landing */ }
   }
 
   return <LandingPage />

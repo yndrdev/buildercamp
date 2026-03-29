@@ -1,29 +1,6 @@
-import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
-export async function middleware(request: NextRequest) {
-  let response = NextResponse.next({ request: { headers: request.headers } })
-
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return request.cookies.getAll()
-        },
-        setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value))
-          response = NextResponse.next({ request: { headers: request.headers } })
-          cookiesToSet.forEach(({ name, value, options }) => response.cookies.set(name, value, options))
-        },
-      },
-    }
-  )
-
-  // Refresh session
-  const { data: { user } } = await supabase.auth.getUser()
-
+export function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname
 
   // Public routes — no auth needed
@@ -34,17 +11,33 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith('/_next') ||
     pathname.includes('.')
   ) {
-    return response
+    return NextResponse.next()
   }
 
-  // Protected routes: /[clientSlug] and /[clientSlug]/responses
-  if (!user) {
+  // Protected routes: /[clientSlug] and /[clientSlug]/*
+  const sessionCookie = request.cookies.get('bc_session')
+  if (!sessionCookie?.value) {
     const url = request.nextUrl.clone()
     url.pathname = '/'
     return NextResponse.redirect(url)
   }
 
-  return response
+  // Verify the user's session matches the requested client slug
+  try {
+    const session = JSON.parse(Buffer.from(sessionCookie.value, 'base64').toString())
+    const requestedSlug = pathname.split('/')[1]
+    if (session.clientSlug !== requestedSlug) {
+      const url = request.nextUrl.clone()
+      url.pathname = '/'
+      return NextResponse.redirect(url)
+    }
+  } catch {
+    const url = request.nextUrl.clone()
+    url.pathname = '/'
+    return NextResponse.redirect(url)
+  }
+
+  return NextResponse.next()
 }
 
 export const config = {
