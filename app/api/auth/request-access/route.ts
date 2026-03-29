@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabase'
+import { createSupabaseServer, createSupabaseAdmin } from '@/lib/supabase-server'
 
 export async function POST(req: NextRequest) {
   const { email } = await req.json()
@@ -9,16 +9,31 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Valid email required' }, { status: 400 })
   }
 
-  const domain = email.split('@')[1].toLowerCase()
+  const normalizedEmail = email.trim().toLowerCase()
+  const domain = normalizedEmail.split('@')[1]
 
-  // Check if domain matches any client
+  // 1. Check if user was individually pre-added in client_users
+  const { data: clientUser } = await supabase
+    .from('client_users')
+    .select('id, client_id, clients(id, slug, name)')
+    .eq('email', normalizedEmail)
+    .single()
+
+  // 2. Or check if their domain matches any client
   const { data: clients } = await supabase
     .from('clients')
     .select('id, slug, name, allowed_domains')
 
-  const matchedClient = clients?.find((c) =>
+  const domainClient = clients?.find((c) =>
     (c.allowed_domains || []).some((d: string) => d.toLowerCase() === domain)
   )
+
+  // Determine matched client (individual user takes priority)
+  const matchedClient = clientUser?.clients
+    ? (clientUser.clients as { id: string; slug: string; name: string })
+    : domainClient
+      ? { id: domainClient.id, slug: domainClient.slug, name: domainClient.name }
+      : null
 
   if (!matchedClient) {
     return NextResponse.json(
@@ -27,22 +42,70 @@ export async function POST(req: NextRequest) {
     )
   }
 
-  // Send OTP code via Supabase Auth (no redirect URL needed)
-  const authClient = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  )
+  // Auto-verify: create auth user + session without OTP
+  const admin = createSupabaseAdmin()
+  const supabaseAuth = createSupabaseServer()
 
-  const { error } = await authClient.auth.signInWithOtp({
-    email,
-    options: {
-      shouldCreateUser: true,
-    },
+  // Generate magic link (creates auth user if needed)
+  const { data: linkData, error: linkError } = await admin.auth.admin.generateLink({
+    type: 'magiclink',
+    email: normalizedEmail,
   })
 
-  if (error) {
-    return NextResponse.json({ error: 'Failed to send access code. Please try again.' }, { status: 500 })
+  if (linkError || !linkData?.properties?.hashed_token) {
+    console.error('generateLink error:', linkError)
+    return NextResponse.json({ error: 'Failed to authenticate. Please try again.' }, { status: 500 })
   }
 
-  return NextResponse.json({ success: true, clientSlug: matchedClient.slug })
+  // Verify the token immediately to create a session (sets auth cookies)
+  const { data: verifyData, error: verifyError } = await supabaseAuth.auth.verifyOtp({
+    token_hash: linkData.properties.hashed_token,
+    type: 'magiclink',
+  })
+
+  if (verifyError) {
+    console.error('verifyOtp error:', verifyError)
+    return NextResponse.json({ error: 'Authentication failed. Please try again.' }, { status: 500 })
+  }
+
+  const authUser = verifyData?.user || linkData.user
+
+  // Update client_users status if they were individually added
+  if (clientUser) {
+    await supabase
+      .from('client_users')
+      .update({ status: 'active', last_active_at: new Date().toISOString() })
+      .eq('id', clientUser.id)
+  }
+
+  // Upsert user profile
+  if (authUser) {
+    const { data: existingProfile } = await supabase
+      .from('user_profiles')
+      .select('id')
+      .eq('auth_user_id', authUser.id)
+      .single()
+
+    if (existingProfile) {
+      await supabase
+        .from('user_profiles')
+        .update({ last_login_at: new Date().toISOString() })
+        .eq('auth_user_id', authUser.id)
+    } else {
+      await supabase
+        .from('user_profiles')
+        .insert({
+          auth_user_id: authUser.id,
+          client_id: matchedClient.id,
+          email: normalizedEmail,
+          display_name: normalizedEmail.split('@')[0],
+        })
+    }
+  }
+
+  return NextResponse.json({
+    success: true,
+    autoVerified: true,
+    clientSlug: matchedClient.slug,
+  })
 }

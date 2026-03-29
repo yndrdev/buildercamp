@@ -38,8 +38,16 @@ export default function AuthModal({ isOpen, onClose, mode }: Props) {
 
       if (res.ok) {
         setClientSlug(data.clientSlug || '')
-        setStep('code')
-        setTimeout(() => codeRefs.current[0]?.focus(), 100)
+        if (data.autoVerified) {
+          // Domain or pre-added user — already authenticated, skip code entry
+          setStep('success')
+          setTimeout(() => {
+            router.push(`/${data.clientSlug || clientSlug}`)
+          }, 1200)
+        } else {
+          setStep('code')
+          setTimeout(() => codeRefs.current[0]?.focus(), 100)
+        }
       } else {
         setErrorMsg(data.error || 'Something went wrong.')
         setStep('error')
