@@ -8,12 +8,11 @@ import { useRouter } from 'next/navigation'
 interface Props {
   isOpen: boolean
   onClose: () => void
-  mode: 'request' | 'login'
 }
 
 type Step = 'email' | 'sending' | 'code' | 'verifying' | 'success' | 'error'
 
-export default function AuthModal({ isOpen, onClose, mode }: Props) {
+export default function AuthModal({ isOpen, onClose }: Props) {
   const [email, setEmail] = useState('')
   const [code, setCode] = useState(['', '', '', '', '', ''])
   const [step, setStep] = useState<Step>('email')
@@ -184,7 +183,7 @@ export default function AuthModal({ isOpen, onClose, mode }: Props) {
                       <EnvelopeSimple weight="bold" className="w-5 h-5 text-[var(--coral)]" />
                     </div>
                     <h2 className="text-[18px] font-semibold text-[var(--text-primary)] tracking-tight mb-1">
-                      {mode === 'request' ? 'Request Access' : 'Welcome Back'}
+                      Join BuilderCamp
                     </h2>
                     <p className="text-[13px] text-[var(--text-muted)] mb-6 leading-relaxed">
                       Enter your work email and we will send you a login code.

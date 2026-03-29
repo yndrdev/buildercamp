@@ -2,17 +2,11 @@
 
 import { useState } from 'react'
 import { motion } from 'framer-motion'
-import { ArrowRight, SignIn } from '@phosphor-icons/react'
+import { ArrowRight } from '@phosphor-icons/react'
 import AuthModal from './AuthModal'
 
 export default function LandingPage() {
   const [modalOpen, setModalOpen] = useState(false)
-  const [modalMode, setModalMode] = useState<'request' | 'login'>('request')
-
-  const openModal = (mode: 'request' | 'login') => {
-    setModalMode(mode)
-    setModalOpen(true)
-  }
 
   return (
     <div className="relative min-h-[100dvh] flex flex-col items-center justify-center overflow-hidden">
@@ -92,29 +86,20 @@ export default function LandingPage() {
           AI Enablement, tailored to your team. Prepare for your workshop in a guided conversation.
         </motion.p>
 
-        {/* CTAs */}
+        {/* CTA */}
         <motion.div
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.45, duration: 0.5 }}
-          className="flex flex-col items-center gap-4"
+          className="flex flex-col items-center"
         >
           <motion.button
-            onClick={() => openModal('request')}
+            onClick={() => setModalOpen(true)}
             whileHover={{ scale: 1.03, y: -1 }}
             whileTap={{ scale: 0.97 }}
             className="flex items-center gap-2.5 px-8 py-3.5 rounded-[var(--radius-full)] bg-[var(--coral)] text-white font-semibold text-[15px] shadow-[var(--shadow-coral)] hover:bg-[var(--coral-light)] transition-colors"
           >
-            Request Access <ArrowRight weight="bold" className="w-4 h-4" />
-          </motion.button>
-
-          <motion.button
-            onClick={() => openModal('login')}
-            whileHover={{ scale: 1.02 }}
-            className="flex items-center gap-2 text-[13px] text-[var(--gold)] hover:text-[var(--gold-light)] transition-colors"
-          >
-            <SignIn weight="bold" className="w-3.5 h-3.5" />
-            Already have access? Log in
+            Join BuilderCamp <ArrowRight weight="bold" className="w-4 h-4" />
           </motion.button>
         </motion.div>
       </div>
@@ -130,7 +115,7 @@ export default function LandingPage() {
       </motion.div>
 
       {/* Auth Modal */}
-      <AuthModal isOpen={modalOpen} onClose={() => setModalOpen(false)} mode={modalMode} />
+      <AuthModal isOpen={modalOpen} onClose={() => setModalOpen(false)} />
     </div>
   )
 }
