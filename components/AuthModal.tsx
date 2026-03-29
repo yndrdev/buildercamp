@@ -186,7 +186,7 @@ export default function AuthModal({ isOpen, onClose }: Props) {
                       Join BuilderCamp
                     </h2>
                     <p className="text-[13px] text-[var(--text-muted)] mb-6 leading-relaxed">
-                      Enter your work email and we will send you a login code.
+                      Enter your work email to continue.
                     </p>
                     <form onSubmit={handleEmailSubmit}>
                       <input
@@ -205,7 +205,7 @@ export default function AuthModal({ isOpen, onClose }: Props) {
                         disabled={!email.includes('@')}
                         className="w-full flex items-center justify-center gap-2 py-3 rounded-[var(--radius-md)] bg-[var(--coral)] text-white font-medium text-[14px] hover:bg-[var(--coral-light)] disabled:opacity-30 transition-colors shadow-[var(--shadow-coral)]"
                       >
-                        Send Code <ArrowRight weight="bold" className="w-4 h-4" />
+                        Continue <ArrowRight weight="bold" className="w-4 h-4" />
                       </motion.button>
                     </form>
                   </motion.div>
@@ -216,7 +216,7 @@ export default function AuthModal({ isOpen, onClose }: Props) {
                   <motion.div key="loading" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="text-center py-6">
                     <CircleNotch weight="bold" className="w-8 h-8 text-[var(--coral)] animate-spin mx-auto mb-4" />
                     <p className="text-[14px] text-[var(--text-secondary)]">
-                      {step === 'sending' ? 'Sending code...' : 'Verifying...'}
+                      {step === 'sending' ? 'Connecting...' : 'Verifying...'}
                     </p>
                   </motion.div>
                 )}
