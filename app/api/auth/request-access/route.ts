@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { createClient } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabase'
-import { createSupabaseServer, createSupabaseAdmin } from '@/lib/supabase-server'
+import { createSupabaseServer } from '@/lib/supabase-server'
 
 export async function POST(req: NextRequest) {
   const { email } = await req.json()
@@ -46,7 +47,10 @@ export async function POST(req: NextRequest) {
   }
 
   // Auto-verify: create auth user + session without OTP
-  const admin = createSupabaseAdmin()
+  const admin = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  )
   const supabaseAuth = createSupabaseServer()
 
   // Generate magic link (creates auth user if needed)
