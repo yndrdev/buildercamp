@@ -29,8 +29,11 @@ export async function POST(req: NextRequest) {
   )
 
   // Determine matched client (individual user takes priority)
-  const matchedClient = clientUser?.clients
-    ? (clientUser.clients as { id: string; slug: string; name: string })
+  const clientsData = Array.isArray(clientUser?.clients)
+    ? clientUser.clients[0]
+    : clientUser?.clients
+  const matchedClient = clientsData
+    ? (clientsData as unknown as { id: string; slug: string; name: string })
     : domainClient
       ? { id: domainClient.id, slug: domainClient.slug, name: domainClient.name }
       : null
