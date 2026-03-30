@@ -167,13 +167,22 @@ export default function AdminClientDetail() {
   async function generateActionPlan() {
     if (!client) return
     setGeneratingPlan(true)
-    const res = await fetch('/api/admin/action-plan', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ clientId: client.id }),
-    })
-    const data = await res.json()
-    if (data.plan) setActionPlan(data.plan)
+    setActionPlan(null)
+    try {
+      const res = await fetch('/api/admin/action-plan', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ clientId: client.id }),
+      })
+      const data = await res.json()
+      if (data.plan) {
+        setActionPlan(data.plan)
+      } else if (data.error) {
+        alert(data.error)
+      }
+    } catch {
+      alert('Failed to generate action plan. Please try again.')
+    }
     setGeneratingPlan(false)
   }
 
