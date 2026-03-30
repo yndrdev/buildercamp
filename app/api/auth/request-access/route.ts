@@ -46,13 +46,16 @@ export async function POST(req: NextRequest) {
     )
   }
 
-  // Update client_users status if individually added
-  if (clientUser) {
-    await supabase
-      .from('client_users')
-      .update({ status: 'active', last_active_at: new Date().toISOString() })
-      .eq('id', clientUser.id)
-  }
+  // Auto-add or update user in client_users so they show in admin
+  await supabase
+    .from('client_users')
+    .upsert({
+      client_id: matchedClient.id,
+      email: normalizedEmail,
+      name: normalizedEmail.split('@')[0],
+      status: 'active',
+      last_active_at: new Date().toISOString(),
+    }, { onConflict: 'client_id,email' })
 
   // Create response with session cookie
   const response = NextResponse.json({
