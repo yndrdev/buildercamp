@@ -82,7 +82,7 @@ export async function POST(req: NextRequest) {
   }
 
   // New conversation
-  const greeting = `Hey there, welcome to YNDR's BuilderCamp. This will take less than 10 minutes. Can I start with your name?`
+  const greeting = `Hey there, welcome to YNDR's BuilderCamp! This will take less than 10 minutes. Can I start with your name?`
 
   const initialMessages = [{ role: 'assistant' as const, content: greeting, timestamp: new Date().toISOString() }]
   const { data: conversation, error } = await supabase
