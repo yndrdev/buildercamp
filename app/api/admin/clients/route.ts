@@ -11,25 +11,25 @@ const DEFAULT_TRACKS = [
 // Standard questions per track (5 each)
 const DEFAULT_QUESTIONS: Record<string, { label: string; section: string; required: boolean }[]> = {
   'Leadership': [
-    { label: 'What does a typical day look like for you?', section: 'About You', required: true },
-    { label: 'What is the single biggest time sink in your week?', section: 'Pain Points', required: true },
-    { label: 'What strategic documents or reports do you produce regularly?', section: 'Workflows', required: false },
-    { label: 'Have you used Claude or any AI tool before? If so, for what?', section: 'AI Readiness', required: false },
-    { label: 'What is one thing you hope to walk out of this session able to do?', section: 'Goals', required: true },
+    { label: 'If AI works perfectly for your organization in the next 12 months, what specific outcome would make you say the investment was worth it?', section: 'Strategic Bet', required: true },
+    { label: 'What is a competitor or peer organization doing with AI right now that, if you are being honest, concerns you?', section: 'Competitive Pressure', required: true },
+    { label: 'When a new technology initiative stalls at your organization, what is usually the reason?', section: 'Decision Bottleneck', required: true },
+    { label: 'How are people in your organization already using AI, officially or unofficially, and what do you think about that?', section: 'Current Exposure', required: true },
+    { label: 'What is one thing about how your team works today that AI should not change?', section: 'Non-Negotiable', required: false },
   ],
   'Business Operations': [
-    { label: 'What does a typical week look like for you?', section: 'About You', required: true },
-    { label: 'What is the most tedious or repetitive task you do?', section: 'Pain Points', required: true },
-    { label: 'What types of client or internal communications take the longest?', section: 'Workflows', required: false },
-    { label: 'Have you used Claude or any AI tool before? If so, for what?', section: 'AI Readiness', required: false },
-    { label: 'What is one thing you hope to walk out of this session able to do?', section: 'Goals', required: true },
+    { label: 'What task do you spend the most time on that you suspect a machine could do faster, even if imperfectly?', section: 'Time Drain', required: true },
+    { label: 'What is something you have built a personal system for, a spreadsheet, a checklist, a shortcut, because the official tool does not handle it well?', section: 'Workaround Signal', required: true },
+    { label: 'What decision do you make regularly that requires experience or gut instinct, not just data?', section: 'Judgment Call', required: true },
+    { label: 'When you need to make a decision quickly, what information do you wish you had at your fingertips but currently have to go dig for?', section: 'Information Gap', required: true },
+    { label: 'If an AI tool gave you a recommendation for your work, what would it need to show you before you would trust it enough to act on it?', section: 'Trust Threshold', required: false },
   ],
   'Technology': [
-    { label: 'What is your primary focus area?', section: 'About You', required: true },
-    { label: 'Where does your team lose the most time?', section: 'Pain Points', required: true },
-    { label: 'What are your top 3 priorities this quarter?', section: 'Roadmap', required: true },
-    { label: 'Have you or your team used Claude, Copilot, or any AI dev tools?', section: 'AI Readiness', required: false },
-    { label: 'What is one thing you hope to walk out of this session able to do?', section: 'Goals', required: true },
+    { label: 'What is the most manual or repetitive part of your development or product workflow right now?', section: 'Build Reality', required: true },
+    { label: 'What are the biggest constraints you would face if asked to integrate an AI service into your current stack tomorrow?', section: 'Integration Constraint', required: true },
+    { label: 'Which AI tools or models have you already tried for your work, and what was your honest assessment?', section: 'AI in Practice', required: true },
+    { label: 'If you had to point an AI model at your organization\'s data today, what would be the first problem you would run into?', section: 'Data Readiness', required: true },
+    { label: 'For AI capabilities, is your team\'s instinct to build custom solutions, buy off-the-shelf tools, or wire together APIs, and what has shaped that instinct?', section: 'Build vs. Buy', required: false },
   ],
 }
 
