@@ -12,11 +12,12 @@ import { SidebarProvider, SidebarInset, SidebarTrigger } from '@/components/ui/s
 interface Props {
   clientId: string
   clientName: string
+  userEmail?: string | null
 }
 
 type Phase = 'loading' | 'name' | 'role' | 'session' | 'questions' | 'complete'
 
-export default function ChatLayout({ clientId, clientName }: Props) {
+export default function ChatLayout({ clientId, clientName, userEmail }: Props) {
   const [conversationId, setConversationId] = useState<string | null>(null)
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [isStreaming, setIsStreaming] = useState(false)
@@ -34,18 +35,43 @@ export default function ChatLayout({ clientId, clientName }: Props) {
       const res = await fetch('/api/chat/start', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ clientId }),
+        body: JSON.stringify({ clientId, userEmail }),
       })
       const data = await res.json()
       setConversationId(data.conversationId)
-      setMessages([{ role: 'assistant', content: data.greeting, timestamp: new Date().toISOString() }])
       setRoles(data.roles)
       setSessionGroups(data.sessionGroups)
       setQuestionsByGroup(data.questionsByGroup)
-      setPhase('name')
+
+      if (data.resumed) {
+        // Restore existing conversation
+        setMessages(data.existingMessages || [])
+        setRespondentName(data.respondentName || null)
+        setRespondentRole(data.respondentRole || null)
+        setAnsweredIds(data.answeredQuestionIds || [])
+        if (data.sessionGroupId) {
+          setSelectedSessionId(data.sessionGroupId)
+        }
+        // Determine phase from existing state
+        if (data.existingStatus === 'completed') {
+          setPhase('complete')
+        } else if (data.sessionGroupId) {
+          setPhase('questions')
+        } else if (data.respondentRole) {
+          setPhase('session')
+        } else if (data.respondentName) {
+          setPhase('role')
+        } else {
+          setPhase('name')
+        }
+      } else {
+        // New conversation
+        setMessages([{ role: 'assistant', content: data.greeting, timestamp: new Date().toISOString() }])
+        setPhase('name')
+      }
     }
     init()
-  }, [clientId])
+  }, [clientId, userEmail])
 
   const sendMessage = useCallback(async (text: string) => {
     if (!conversationId || isStreaming || !text.trim()) return

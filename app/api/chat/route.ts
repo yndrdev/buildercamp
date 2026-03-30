@@ -97,7 +97,7 @@ ${questionPrompt ? `## Questions to Ask (in order)\n${questionPrompt}` : ''}
 - NEVER use emojis. No smiley faces, no thumbs up, no fire, nothing. Keep it clean and professional.
 - NEVER use em dashes or en dashes. Use commas, periods, or "and" instead of dashes.
 - After each answered question, end your message with <!--ANSWERED:question_id_here-->
-- When ALL questions (required and optional) have been asked OR the participant wants to wrap up, end with <!--COMPLETE-->
+- When ALL questions (required and optional) have been asked OR the participant wants to wrap up, generate a "What I Heard" summary. Start with "Here is what I heard from our conversation:" then summarize their key points in 3-5 bullet points (use ">" at the start of each). End with "Does this capture everything? Feel free to add anything I missed." Then add <!--COMPLETE--> at the very end.
 - These markers are hidden from the user — include them at the very end.
 - There are only about 5 questions total per session. Move through them efficiently.`
 
