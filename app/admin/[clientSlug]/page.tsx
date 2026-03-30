@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useParams } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Lock, ArrowLeft, Lightning, ChatDots, FileText, CaretDown, CaretUp, Spinner, Link as LinkIcon, ArrowSquareOut, UserPlus, Upload, Trash, UsersThree } from '@phosphor-icons/react'
+import { Lock, ArrowLeft, Lightning, ChatDots, FileText, CaretDown, CaretUp, Spinner, Link as LinkIcon, ArrowSquareOut, UserPlus, Upload, Trash, UsersThree, ShareNetwork, Check } from '@phosphor-icons/react'
 import Papa from 'papaparse'
 
 const ADMIN_PIN = 'yndr'
@@ -69,6 +69,8 @@ export default function AdminClientDetail() {
   const [actionPlan, setActionPlan] = useState<ActionPlan | null>(null)
   const [generatingPlan, setGeneratingPlan] = useState(false)
   const [expandedPrompt, setExpandedPrompt] = useState<number | null>(null)
+  const [sharing, setSharing] = useState(false)
+  const [shareUrl, setShareUrl] = useState<string | null>(null)
   const [showAddUser, setShowAddUser] = useState(false)
   const [newUserName, setNewUserName] = useState('')
   const [newUserEmail, setNewUserEmail] = useState('')
@@ -175,6 +177,23 @@ export default function AdminClientDetail() {
     setGeneratingPlan(false)
   }
 
+  async function shareReport() {
+    if (!client) return
+    setSharing(true)
+    const res = await fetch('/api/admin/share', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ clientId: client.id }),
+    })
+    const data = await res.json()
+    if (data.token) {
+      const url = `${window.location.origin}/report/${data.token}`
+      setShareUrl(url)
+      navigator.clipboard.writeText(url)
+    }
+    setSharing(false)
+  }
+
   // PIN gate
   if (!authenticated) {
     return (
@@ -225,14 +244,19 @@ export default function AdminClientDetail() {
             )}
           </div>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
           <a href={`/${client.slug}`} target="_blank" className="flex items-center gap-1.5 px-3 py-2 rounded-[var(--radius-full)] text-[12px] font-medium bg-[var(--surface)] text-[var(--text-secondary)] border border-[var(--border)] hover:border-[var(--coral)]/30 transition-all">
             Open Intake <ArrowSquareOut weight="bold" className="w-3.5 h-3.5" />
           </a>
+          <button onClick={shareReport} disabled={sharing}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-[var(--radius-full)] text-[12px] font-medium bg-[var(--surface)] text-[var(--text-secondary)] border border-[var(--border)] hover:border-[var(--coral)]/30 disabled:opacity-50 transition-all">
+            {sharing ? <Spinner weight="bold" className="w-3.5 h-3.5 animate-spin" /> : shareUrl ? <Check weight="bold" className="w-3.5 h-3.5 text-emerald-400" /> : <ShareNetwork weight="bold" className="w-3.5 h-3.5" />}
+            {shareUrl ? 'Link Copied' : 'Share Report'}
+          </button>
           <button onClick={generateActionPlan} disabled={generatingPlan}
             className="flex items-center gap-1.5 px-4 py-2 rounded-[var(--radius-full)] text-[12px] font-medium bg-[var(--coral)] text-white hover:bg-[var(--coral-light)] disabled:opacity-50 transition-colors shadow-[var(--shadow-coral)]">
             {generatingPlan ? <Spinner weight="bold" className="w-3.5 h-3.5 animate-spin" /> : <Lightning weight="fill" className="w-3.5 h-3.5" />}
-            Generate Action Plan
+            Action Plan
           </button>
         </div>
       </div>

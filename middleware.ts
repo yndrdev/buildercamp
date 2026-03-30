@@ -8,6 +8,7 @@ export function middleware(request: NextRequest) {
     pathname === '/' ||
     pathname.startsWith('/api/') ||
     pathname.startsWith('/admin') ||
+    pathname.startsWith('/report') ||
     pathname.startsWith('/_next') ||
     pathname.includes('.')
   ) {
