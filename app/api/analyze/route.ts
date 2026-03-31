@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import claude from '@/lib/claude'
 import { supabase } from '@/lib/supabase'
+import { logEvent } from '@/lib/log-event'
 
 export const maxDuration = 60
 
@@ -56,10 +57,27 @@ Return ONLY valid JSON with this exact structure (no markdown, no code blocks):
     analysis = { summary: text, themes: [], tasks: [], prep_notes: '' }
   }
 
-  await supabase
+  const { error } = await supabase
     .from('conversations')
     .update({ analysis })
     .eq('id', conversationId)
+
+  if (error) {
+    await logEvent('analysis_failed', {
+      conversationId,
+      clientId: convo.client_id,
+      actorEmail: convo.respondent_email,
+      eventData: { error: error.message, stage: 'db_save' },
+    })
+    return NextResponse.json({ error: 'Failed to save analysis' }, { status: 500 })
+  }
+
+  await logEvent('analysis_generated', {
+    conversationId,
+    clientId: convo.client_id,
+    actorEmail: convo.respondent_email,
+    eventData: { themes: analysis.themes?.length || 0, tasks: analysis.tasks?.length || 0 },
+  })
 
   return NextResponse.json({ analysis })
 }

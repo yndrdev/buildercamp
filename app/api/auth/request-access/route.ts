@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase'
+import { logEvent } from '@/lib/log-event'
 
 export async function POST(req: NextRequest) {
   const { email } = await req.json()
@@ -40,6 +41,10 @@ export async function POST(req: NextRequest) {
       : null
 
   if (!matchedClient) {
+    await logEvent('user_domain_rejected', {
+      actorEmail: normalizedEmail,
+      eventData: { domain, reason: 'no_matching_client' },
+    })
     return NextResponse.json(
       { error: 'Your organization has not been registered with BuilderCamp yet. Please contact your administrator.' },
       { status: 403 }
@@ -53,9 +58,16 @@ export async function POST(req: NextRequest) {
       client_id: matchedClient.id,
       email: normalizedEmail,
       name: normalizedEmail.split('@')[0],
+      domain,
       status: 'active',
       last_active_at: new Date().toISOString(),
     }, { onConflict: 'client_id,email' })
+
+  await logEvent('user_login', {
+    clientId: matchedClient.id,
+    actorEmail: normalizedEmail,
+    eventData: { domain, matchType: clientUser ? 'individual' : 'domain', clientSlug: matchedClient.slug },
+  })
 
   // Create response with session cookie
   const response = NextResponse.json({

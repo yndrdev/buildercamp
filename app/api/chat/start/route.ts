@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase'
+import { logEvent } from '@/lib/log-event'
 import type { QuestionSection } from '@/lib/types'
 
 export async function POST(req: NextRequest) {
@@ -63,6 +64,12 @@ export async function POST(req: NextRequest) {
 
   // Resume existing conversation
   if (existingConversation) {
+    await logEvent('conversation_resumed', {
+      conversationId: existingConversation.id,
+      clientId,
+      actorEmail: userEmail,
+      eventData: { status: existingConversation.status, messageCount: (existingConversation.messages || []).length },
+    })
     return NextResponse.json({
       conversationId: existingConversation.id,
       resumeToken: existingConversation.resume_token,
@@ -97,8 +104,20 @@ export async function POST(req: NextRequest) {
     .single()
 
   if (error || !conversation) {
+    await logEvent('stream_error', {
+      clientId,
+      actorEmail: userEmail,
+      eventData: { error: error?.message || 'unknown', action: 'create_conversation' },
+    })
     return NextResponse.json({ error: 'Failed to create conversation' }, { status: 500 })
   }
+
+  await logEvent('conversation_created', {
+    conversationId: conversation.id,
+    clientId,
+    actorEmail: userEmail,
+    eventData: { resumeToken: conversation.resume_token },
+  })
 
   return NextResponse.json({
     conversationId: conversation.id,

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import type { SessionGroup, QuestionSection, ChatMessage } from '@/lib/types'
 import ChatSidebar from './ChatSidebar'
@@ -8,6 +8,22 @@ import ChatMessages from './ChatMessages'
 import ChatInput from './ChatInput'
 import SuggestionChips from './SuggestionChips'
 import { SidebarProvider, SidebarInset, SidebarTrigger } from '@/components/ui/sidebar'
+
+async function persistPatch(conversationId: string, data: Record<string, unknown>, retries = 2): Promise<boolean> {
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      const res = await fetch('/api/chat', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ conversationId, ...data }),
+      })
+      if (res.ok) return true
+    } catch { /* retry */ }
+    if (attempt < retries) await new Promise((r) => setTimeout(r, 500 * (attempt + 1)))
+  }
+  console.error('[BuilderCamp] Failed to save phase data after retries:', data)
+  return false
+}
 
 interface Props {
   clientId: string
@@ -80,17 +96,17 @@ export default function ChatLayout({ clientId, clientName, userEmail }: Props) {
     setMessages((prev) => [...prev, userMsg])
     setIsStreaming(true)
 
-    // Phase transitions
+    // Phase transitions — awaited with retry to prevent data loss
     if (phase === 'name' && !respondentName) {
       const name = text.trim().replace(/^(my name is |i'm |i am |hi,? i'm |hey,? i'm )/i, '').replace(/[.!]$/, '').trim()
       setRespondentName(name)
       setPhase('role')
-      fetch('/api/chat', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ conversationId, respondentName: name }) }).catch(() => {})
+      await persistPatch(conversationId, { respondentName: name })
     } else if (phase === 'role' && !respondentRole) {
       const roleName = text.trim()
       setRespondentRole(roleName)
       setPhase('session')
-      fetch('/api/chat', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ conversationId, respondentRole: roleName }) }).catch(() => {})
+      await persistPatch(conversationId, { respondentRole: roleName })
     } else if (phase === 'session' && !selectedSessionId) {
       const match = sessionGroups.find((sg) =>
         text.toLowerCase().includes(sg.name.toLowerCase()) || sg.name.toLowerCase().includes(text.toLowerCase())
@@ -98,7 +114,7 @@ export default function ChatLayout({ clientId, clientName, userEmail }: Props) {
       if (match) {
         setSelectedSessionId(match.id)
         setPhase('questions')
-        fetch('/api/chat', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ conversationId, sessionGroupId: match.id }) }).catch(() => {})
+        await persistPatch(conversationId, { sessionGroupId: match.id })
       }
     }
 
@@ -140,7 +156,18 @@ export default function ChatLayout({ clientId, clientName, userEmail }: Props) {
 
       if (fullText.includes('<!--COMPLETE-->')) {
         setPhase('complete')
-        fetch('/api/analyze', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ conversationId }) }).catch(() => {})
+        // Persist analysis with retry — do not fire-and-forget
+        for (let attempt = 0; attempt < 3; attempt++) {
+          try {
+            const analyzeRes = await fetch('/api/analyze', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ conversationId }),
+            })
+            if (analyzeRes.ok) break
+          } catch { /* retry */ }
+          if (attempt < 2) await new Promise((r) => setTimeout(r, 1000 * (attempt + 1)))
+        }
       }
     } catch {
       setMessages((prev) => {

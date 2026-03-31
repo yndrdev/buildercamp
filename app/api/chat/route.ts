@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server'
 import claude from '@/lib/claude'
 import { supabase } from '@/lib/supabase'
+import { logEvent } from '@/lib/log-event'
 
 export const maxDuration = 60
 
@@ -27,6 +28,13 @@ export async function POST(req: NextRequest) {
     .from('conversations')
     .update({ messages })
     .eq('id', conversationId)
+
+  await logEvent('message_sent', {
+    conversationId,
+    clientId,
+    actorEmail: convo.respondent_email,
+    eventData: { messageIndex: messages.length - 1 },
+  })
 
   // Load context
   const [{ data: knowledge }, { data: sessionGroups }, { data: roles }, { data: questions }] = await Promise.all([
@@ -116,6 +124,7 @@ ${questionPrompt ? `## Questions to Ask (in order)\n${questionPrompt}` : ''}
   })
 
   let fullResponse = ''
+  let streamAborted = false
 
   const readable = new ReadableStream({
     async start(controller) {
@@ -124,11 +133,25 @@ ${questionPrompt ? `## Questions to Ask (in order)\n${questionPrompt}` : ''}
           if (event.type === 'content_block_delta' && event.delta.type === 'text_delta') {
             const text = event.delta.text
             fullResponse += text
-            controller.enqueue(new TextEncoder().encode(text))
+            try {
+              controller.enqueue(new TextEncoder().encode(text))
+            } catch {
+              // Client disconnected mid-stream
+              streamAborted = true
+              break
+            }
           }
         }
-
-        // Process markers and update DB after stream completes
+      } catch (err) {
+        streamAborted = true
+        await logEvent('stream_error', {
+          conversationId,
+          clientId,
+          actorEmail: convo.respondent_email,
+          eventData: { error: String(err), partialLength: fullResponse.length },
+        })
+      } finally {
+        // Always save whatever we have — full or partial
         const answeredMarkers: string[] = []
         let markerMatch: RegExpExecArray | null
         const markerRegex = /<!--ANSWERED:([^>]+)-->/g
@@ -138,37 +161,47 @@ ${questionPrompt ? `## Questions to Ask (in order)\n${questionPrompt}` : ''}
         const isComplete = fullResponse.includes('<!--COMPLETE-->')
         const cleanResponse = fullResponse.replace(/<!--ANSWERED:[^>]+-->/g, '').replace(/<!--COMPLETE-->/g, '').trim()
 
-        // Detect name, role, session from conversation context
-        const updates: Record<string, unknown> = {
-          messages: [...messages, { role: 'assistant', content: cleanResponse, timestamp: new Date().toISOString() }],
-        }
+        if (cleanResponse.length > 0) {
+          const updates: Record<string, unknown> = {
+            messages: [...messages, { role: 'assistant', content: cleanResponse, timestamp: new Date().toISOString() }],
+          }
 
-        if (answeredMarkers.length > 0) {
-          updates.answered_question_ids = Array.from(new Set([...(convo.answered_question_ids || []), ...answeredMarkers]))
-        }
+          if (answeredMarkers.length > 0) {
+            updates.answered_question_ids = Array.from(new Set([...(convo.answered_question_ids || []), ...answeredMarkers]))
+          }
 
-        // Try to extract name from early conversation
-        if (!convo.respondent_name && messages.length <= 4) {
-          const userMessages = messages.filter((m) => m.role === 'user')
-          if (userMessages.length === 1) {
-            // First user message is likely their name
-            const name = userMessages[0].content.trim().replace(/^(my name is |i'm |i am |hi,? i'm |hey,? i'm )/i, '').replace(/[.!]$/, '').trim()
-            if (name.length > 0 && name.length < 50 && !name.includes(' is ')) {
-              updates.respondent_name = name
+          // Try to extract name from early conversation
+          if (!convo.respondent_name && messages.length <= 4) {
+            const userMessages = messages.filter((m) => m.role === 'user')
+            if (userMessages.length === 1) {
+              const name = userMessages[0].content.trim().replace(/^(my name is |i'm |i am |hi,? i'm |hey,? i'm )/i, '').replace(/[.!]$/, '').trim()
+              if (name.length > 0 && name.length < 50 && !name.includes(' is ')) {
+                updates.respondent_name = name
+              }
             }
           }
+
+          if (isComplete) {
+            updates.status = 'completed'
+            updates.completed_at = new Date().toISOString()
+          }
+
+          await supabase.from('conversations').update(updates).eq('id', conversationId)
+
+          await logEvent(streamAborted ? 'ai_response_partial' : 'ai_response_saved', {
+            conversationId,
+            clientId,
+            actorEmail: convo.respondent_email,
+            eventData: {
+              responseLength: cleanResponse.length,
+              answeredQuestions: answeredMarkers,
+              isComplete,
+              streamAborted,
+            },
+          })
         }
 
-        if (isComplete) {
-          updates.status = 'completed'
-          updates.completed_at = new Date().toISOString()
-        }
-
-        await supabase.from('conversations').update(updates).eq('id', conversationId)
-
-        controller.close()
-      } catch (err) {
-        controller.error(err)
+        try { controller.close() } catch { /* already closed */ }
       }
     },
   })
@@ -190,7 +223,20 @@ export async function PATCH(req: NextRequest) {
   if (respondentRole) updates.respondent_role = respondentRole
   if (respondentName) updates.respondent_name = respondentName
 
-  await supabase.from('conversations').update(updates).eq('id', conversationId)
+  const { error } = await supabase.from('conversations').update(updates).eq('id', conversationId)
+
+  if (error) {
+    await logEvent('phase_transition', {
+      conversationId,
+      eventData: { ...updates, success: false, error: error.message },
+    })
+    return new Response(JSON.stringify({ ok: false, error: error.message }), { status: 500 })
+  }
+
+  await logEvent('phase_transition', {
+    conversationId,
+    eventData: { ...updates, success: true },
+  })
 
   return new Response(JSON.stringify({ ok: true }), { status: 200 })
 }
