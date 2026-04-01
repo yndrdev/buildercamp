@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import type { SessionGroup, QuestionSection, ChatMessage } from '@/lib/types'
 import ChatSidebar from './ChatSidebar'
