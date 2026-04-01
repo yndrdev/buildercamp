@@ -299,13 +299,41 @@ export default function AdminClientDetail() {
                   <p className="text-[13px] text-[var(--text-primary)] leading-relaxed">{actionPlan.workshop_brief}</p>
                 </div>
               )}
+              {actionPlan.pain_points?.length > 0 && (
+                <div>
+                  <h3 className="text-[10px] font-bold tracking-[0.1em] uppercase text-[var(--coral)] mb-2">Pain Points</h3>
+                  <div className="space-y-2">
+                    {actionPlan.pain_points.map((pp, i) => (
+                      <div key={i} className="p-3 rounded-[var(--radius-md)] bg-[var(--surface-elevated)] border border-[var(--border)]">
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-[13px] font-medium text-[var(--text-primary)]">{pp.area}</span>
+                          <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${pp.priority === 'high' ? 'bg-red-500/15 text-red-400' : 'bg-yellow-500/15 text-yellow-400'}`}>
+                            {pp.priority}
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-[var(--text-muted)] mb-2">{pp.description}</p>
+                        {pp.affected_roles?.length > 0 && (
+                          <div className="flex flex-wrap gap-1">
+                            {pp.affected_roles.map((role, j) => (
+                              <span key={j} className="text-[10px] px-2 py-0.5 rounded-full bg-[var(--bg)] border border-[var(--border)] text-[var(--text-secondary)]">{role}</span>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
               {actionPlan.quick_wins?.length > 0 && (
                 <div>
                   <h3 className="text-[10px] font-bold tracking-[0.1em] uppercase text-[var(--coral)] mb-2">Quick Wins</h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                     {actionPlan.quick_wins.map((w, i) => (
                       <div key={i} className="p-3 rounded-[var(--radius-md)] bg-[var(--surface-elevated)] border border-[var(--border)]">
-                        <div className="text-[13px] font-medium text-[var(--text-primary)] mb-1">{w.title}</div>
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-[13px] font-medium text-[var(--text-primary)]">{w.title}</span>
+                          {w.impact && <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-green-500/15 text-green-400">{w.impact}</span>}
+                        </div>
                         <div className="text-[11px] text-[var(--text-muted)]">{w.description}</div>
                       </div>
                     ))}
@@ -319,19 +347,22 @@ export default function AdminClientDetail() {
                     {actionPlan.action_items.map((item, i) => (
                       <div key={i} className="rounded-[var(--radius-md)] bg-[var(--surface-elevated)] border border-[var(--border)] overflow-hidden">
                         <div className="p-3">
-                          <div className="flex justify-between mb-1">
+                          <div className="flex justify-between items-start mb-1">
                             <span className="text-[13px] font-medium text-[var(--text-primary)]">{item.title}</span>
-                            <span className="text-[10px] text-[var(--text-muted)]">{item.timeline}</span>
+                            <span className="text-[10px] text-[var(--text-muted)] whitespace-nowrap ml-2">{item.timeline}</span>
                           </div>
                           <div className="text-[11px] text-[var(--text-muted)] mb-2">{item.description}</div>
-                          {item.prompt && (
-                            <button onClick={() => setExpandedPrompt(expandedPrompt === i ? null : i)}
-                              className="flex items-center gap-1 text-[11px] font-medium text-[var(--coral)]">
-                              <Lightning weight="fill" className="w-3 h-3" />
-                              {expandedPrompt === i ? 'Hide' : 'View'} Prompt
-                              {expandedPrompt === i ? <CaretUp className="w-3 h-3" /> : <CaretDown className="w-3 h-3" />}
-                            </button>
-                          )}
+                          <div className="flex items-center justify-between">
+                            {item.owner && <span className="text-[10px] text-[var(--text-secondary)]">Owner: {item.owner}</span>}
+                            {item.prompt && (
+                              <button onClick={() => setExpandedPrompt(expandedPrompt === i ? null : i)}
+                                className="flex items-center gap-1 text-[11px] font-medium text-[var(--coral)]">
+                                <Lightning weight="fill" className="w-3 h-3" />
+                                {expandedPrompt === i ? 'Hide' : 'View'} Prompt
+                                {expandedPrompt === i ? <CaretUp className="w-3 h-3" /> : <CaretDown className="w-3 h-3" />}
+                              </button>
+                            )}
+                          </div>
                         </div>
                         {expandedPrompt === i && item.prompt && (
                           <div className="border-t border-[var(--border)] p-3 bg-[var(--bg)]">

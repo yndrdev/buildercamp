@@ -43,7 +43,7 @@ export async function POST(req: NextRequest) {
 
   const response = await claude.messages.create({
     model: 'claude-haiku-4-5',
-    max_tokens: 2000,
+    max_tokens: 4096,
     messages: [
       {
         role: 'user',
@@ -70,7 +70,36 @@ Generate a JSON response (no markdown, no code blocks) with this structure:
   try {
     plan = JSON.parse(text)
   } catch {
-    plan = { workshop_brief: text, pain_points: [], action_items: [], quick_wins: [] }
+    // Try to recover individual fields from truncated JSON
+    const extract = (key: string) => {
+      const re = new RegExp(`"${key}"\\s*:\\s*"((?:[^"\\\\]|\\\\.)*)"`);
+      const m = text.match(re)
+      return m ? m[1].replace(/\\"/g, '"').replace(/\\n/g, '\n') : ''
+    }
+    const extractArray = (key: string) => {
+      const re = new RegExp(`"${key}"\\s*:\\s*\\[([\\s\\S]*?)(?:\\]|$)`)
+      const m = text.match(re)
+      if (!m) return []
+      try {
+        // Try to parse complete array
+        return JSON.parse(`[${m[1]}]`)
+      } catch {
+        // Try to parse up to the last complete object
+        const objects: unknown[] = []
+        const objRe = /\{[^{}]*\}/g
+        let om
+        while ((om = objRe.exec(m[1])) !== null) {
+          try { objects.push(JSON.parse(om[0])) } catch { /* skip malformed */ }
+        }
+        return objects
+      }
+    }
+    plan = {
+      workshop_brief: extract('workshop_brief') || text,
+      pain_points: extractArray('pain_points'),
+      action_items: extractArray('action_items'),
+      quick_wins: extractArray('quick_wins'),
+    }
   }
 
   return NextResponse.json({ plan, participantCount: conversations.length })
