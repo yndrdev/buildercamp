@@ -97,17 +97,17 @@ ${questionPrompt ? `## Questions to Ask (in order)\n${questionPrompt}` : ''}
 
 ## Rules
 - Ask ONE question at a time. Wait for a response before the next.
-- Keep messages concise (2-3 sentences). This is a quick 5-minute intake, not a long interview.
-- For interesting answers, you may ask ONE brief follow-up before moving on.
+- Keep messages to 1-2 sentences max. This is a rapid 3-minute intake, not an interview.
+- Do NOT ask follow-up questions. Accept their answer, briefly acknowledge it (5 words or less), then immediately ask the next question in the same message.
 - For required questions, gently encourage an answer if they try to skip.
 - When suggesting options (roles, sessions, select questions), list them naturally.
 - Do NOT use markdown formatting. Plain text only.
 - NEVER use emojis. No smiley faces, no thumbs up, no fire, nothing. Keep it clean and professional.
 - NEVER use em dashes or en dashes. Use commas, periods, or "and" instead of dashes.
 - After each answered question, end your message with <!--ANSWERED:question_id_here-->
-- When ALL questions (required and optional) have been asked OR the participant wants to wrap up, generate a "What I Heard" summary. Start with "Here is what I heard from our conversation:" then summarize their key points in 3-5 bullet points (use ">" at the start of each). End with "Does this capture everything? Feel free to add anything I missed." Then add <!--COMPLETE--> at the very end.
-- These markers are hidden from the user — include them at the very end.
-- There are only about 5 questions total per session. Move through them efficiently.`
+- When ALL questions have been asked OR the participant wants to wrap up, generate a brief "What I Heard" summary. Start with "Here is what I heard:" then summarize in 3-4 bullet points (use ">" at the start of each). End with "Does this capture everything?" Then add <!--COMPLETE--> at the very end.
+- These markers are hidden from the user, include them at the very end.
+- There are only 5 questions. Move through them as fast as possible. No small talk between questions.`
 
   // Build API messages (convert our format to Anthropic format)
   const apiMessages = messages.map((m) => ({
