@@ -250,7 +250,7 @@ export default function ChatLayout({ clientId, clientName, userEmail }: Props) {
           </AnimatePresence>
           <ChatInput
             onSend={sendMessage}
-            disabled={isStreaming || phase === 'loading' || phase === 'complete'}
+            disabled={isStreaming || phase === 'loading'}
             conversationId={conversationId}
           />
         </div>
