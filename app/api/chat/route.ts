@@ -118,7 +118,7 @@ ${questionPrompt ? `## Questions to Ask (in order)\n${questionPrompt}` : ''}
   // Stream response
   const stream = await claude.messages.stream({
     model: 'claude-haiku-4-5',
-    max_tokens: 500,
+    max_tokens: 1500,
     system: systemPrompt,
     messages: apiMessages,
   })

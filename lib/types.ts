@@ -25,11 +25,19 @@ export interface Question {
   section_header: string | null
 }
 
+export interface ChatAttachment {
+  url: string
+  name: string
+  type: string
+  size: number
+}
+
 export interface ChatMessage {
   role: 'user' | 'assistant'
   content: string
   timestamp: string
   questionId?: string
+  attachments?: ChatAttachment[]
 }
 
 export interface QuestionSection {

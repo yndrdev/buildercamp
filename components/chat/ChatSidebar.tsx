@@ -29,11 +29,12 @@ export default function ChatSidebar({ phase, respondentName, respondentRole, ses
   const answeredSet = new Set(answeredIds)
   const totalQuestions = sections.reduce((sum, s) => sum + s.questions.length, 0)
   const totalAnswered = sections.reduce((sum, s) => sum + s.questions.filter((q) => answeredSet.has(q.id)).length, 0)
-  // Calculate overall progress including meta steps
+  // Progress: meta steps (name/role/session) = 30%, questions = 70%
+  // This prevents progress from going backwards when session is selected
   const metaSteps = [!!respondentName, !!respondentRole, !!sessionName].filter(Boolean).length
-  const overallProgress = totalQuestions > 0
-    ? Math.round(((metaSteps + totalAnswered) / (3 + totalQuestions)) * 100)
-    : Math.round((metaSteps / 3) * 100)
+  const metaProgress = (metaSteps / 3) * 30
+  const questionProgress = totalQuestions > 0 ? (totalAnswered / totalQuestions) * 70 : 0
+  const overallProgress = Math.round(metaProgress + questionProgress)
 
   return (
     <Sidebar className="border-r border-[var(--border)]">
@@ -71,7 +72,7 @@ export default function ChatSidebar({ phase, respondentName, respondentRole, ses
           </div>
           <div>
             <div className="text-[12px] font-semibold text-[var(--text-primary)]">Progress</div>
-            <div className="text-[11px] text-[var(--text-muted)]">{metaSteps + totalAnswered} of {3 + totalQuestions} steps</div>
+            <div className="text-[11px] text-[var(--text-muted)]">{totalQuestions > 0 ? `${totalAnswered} of ${totalQuestions} questions` : `Step ${metaSteps} of 3`}</div>
           </div>
         </div>
       </SidebarHeader>

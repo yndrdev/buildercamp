@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import type { SessionGroup, QuestionSection, ChatMessage } from '@/lib/types'
+import type { SessionGroup, QuestionSection, ChatMessage, ChatAttachment } from '@/lib/types'
 import ChatSidebar from './ChatSidebar'
 import ChatMessages from './ChatMessages'
 import ChatInput from './ChatInput'
@@ -89,10 +89,10 @@ export default function ChatLayout({ clientId, clientName, userEmail }: Props) {
     init()
   }, [clientId, userEmail])
 
-  const sendMessage = useCallback(async (text: string) => {
-    if (!conversationId || isStreaming || !text.trim()) return
+  const sendMessage = useCallback(async (text: string, attachments?: ChatAttachment[]) => {
+    if (!conversationId || isStreaming || (!text.trim() && !attachments?.length)) return
 
-    const userMsg: ChatMessage = { role: 'user', content: text.trim(), timestamp: new Date().toISOString() }
+    const userMsg: ChatMessage = { role: 'user', content: text.trim(), timestamp: new Date().toISOString(), attachments }
     setMessages((prev) => [...prev, userMsg])
     setIsStreaming(true)
 
@@ -192,7 +192,7 @@ export default function ChatLayout({ clientId, clientName, userEmail }: Props) {
   const currentSections = selectedSessionId ? questionsByGroup[selectedSessionId] || [] : []
 
   return (
-    <SidebarProvider>
+    <SidebarProvider defaultOpen={false}>
       <ChatSidebar
         clientName={clientName}
         phase={phase}
@@ -251,6 +251,7 @@ export default function ChatLayout({ clientId, clientName, userEmail }: Props) {
           <ChatInput
             onSend={sendMessage}
             disabled={isStreaming || phase === 'loading' || phase === 'complete'}
+            conversationId={conversationId}
           />
         </div>
       </SidebarInset>
