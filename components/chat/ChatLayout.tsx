@@ -242,7 +242,7 @@ export default function ChatLayout({ clientId, clientName, userEmail }: Props) {
         </div>
 
         {/* Chips + Input */}
-        <div className="px-4 md:px-10 pb-6 pt-2 space-y-3">
+        <div className="px-4 md:px-10 pb-6 pt-2 space-y-3 relative z-20" style={{ paddingBottom: 'max(1.5rem, env(safe-area-inset-bottom))' }}>
           <AnimatePresence>
             {getChips() && (
               <SuggestionChips options={getChips()!} onSelect={sendMessage} />

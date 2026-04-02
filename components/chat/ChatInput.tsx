@@ -193,7 +193,7 @@ export default function ChatInput({ onSend, disabled, conversationId }: Props) {
               disabled={disabled || isRecording || isTranscribing}
               placeholder={isRecording ? 'Listening...' : isTranscribing ? 'Transcribing...' : 'Type your response...'}
               rows={1}
-              className="w-full bg-transparent px-2 py-3.5 text-[14px] text-[var(--text-primary)] placeholder:text-[var(--text-muted)] resize-none focus:outline-none"
+              className="w-full bg-transparent px-2 py-3.5 text-[16px] md:text-[14px] text-[var(--text-primary)] placeholder:text-[var(--text-muted)] resize-none focus:outline-none min-h-[44px]"
             />
           </div>
         </div>
