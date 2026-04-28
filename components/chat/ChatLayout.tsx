@@ -138,7 +138,11 @@ export default function ChatLayout({ clientId, clientName, userEmail }: Props) {
         if (done) break
         const chunk = decoder.decode(value, { stream: true })
         fullText += chunk
-        const cleanText = fullText.replace(/<!--ANSWERED:[^>]+-->/g, '').replace(/<!--COMPLETE-->/g, '').trim()
+        const cleanText = fullText
+          .replace(/<!--ANSWERED:[^>]+-->/g, '')
+          .replace(/<!--SESSION:[^>]+-->/g, '')
+          .replace(/<!--COMPLETE-->/g, '')
+          .trim()
         setMessages((prev) => {
           const updated = [...prev]
           updated[updated.length - 1] = { ...updated[updated.length - 1], content: cleanText }
@@ -152,6 +156,17 @@ export default function ChatLayout({ clientId, clientName, userEmail }: Props) {
       while ((m = re.exec(fullText)) !== null) markers.push(m[1])
       if (markers.length > 0) {
         setAnsweredIds((prev) => Array.from(new Set([...prev, ...markers])))
+      }
+
+      // AI-emitted session selection — backstop for cases where the substring matcher missed
+      const sessionMatch = /<!--SESSION:([a-f0-9-]+)-->/i.exec(fullText)
+      if (sessionMatch && !selectedSessionId) {
+        const aiSelectedId = sessionMatch[1]
+        const validSession = sessionGroups.find((sg) => sg.id === aiSelectedId)
+        if (validSession) {
+          setSelectedSessionId(validSession.id)
+          setPhase((p) => (p === 'session' ? 'questions' : p))
+        }
       }
 
       if (fullText.includes('<!--COMPLETE-->')) {

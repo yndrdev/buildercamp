@@ -78,7 +78,11 @@ export async function POST(req: NextRequest) {
   } else if (!convo.respondent_role) {
     phaseInstructions = `The participant's name is ${convo.respondent_name}. They haven't selected a role yet. Ask them to choose their role. Available roles: ${(roles || []).map((r) => r.title).join(', ')}.`
   } else if (!convo.session_group_id) {
-    phaseInstructions = `${convo.respondent_name} is a ${convo.respondent_role}. They haven't selected a session track yet. Ask which session they'll attend. Options: ${(sessionGroups || []).map((sg) => `"${sg.name}" - ${sg.description || ''}`).join('; ')}.`
+    const sessionList = (sessionGroups || []).map((sg) => `- "${sg.name}" (id: ${sg.id})${sg.description ? ` — ${sg.description}` : ''}`).join('\n')
+    phaseInstructions = `${convo.respondent_name} is a ${convo.respondent_role}. They haven't selected a session track yet. Ask which session they'll attend. Options:
+${sessionList}
+
+When the participant clearly indicates which session they want (by name, paraphrase, or confirming an inferred match based on their role), end your message with <!--SESSION:<id>--> using the EXACT id from the list above. Use this marker as soon as the choice is clear, even if the participant phrases it loosely (e.g. "the consultants one", "Business and Payment", "yeah that one"). Only use one marker per message.`
   } else {
     phaseInstructions = `${convo.respondent_name} is a ${convo.respondent_role}. They are in the "${sessionGroups?.find((sg) => sg.id === convo.session_group_id)?.name}" session. Proceed through the PENDING questions below, asking ONE at a time. You may ask ONE brief follow-up on interesting answers before moving on.`
   }
@@ -105,6 +109,7 @@ ${questionPrompt ? `## Questions to Ask (in order)\n${questionPrompt}` : ''}
 - NEVER use emojis. No smiley faces, no thumbs up, no fire, nothing. Keep it clean and professional.
 - NEVER use em dashes or en dashes. Use commas, periods, or "and" instead of dashes.
 - After each answered question, end your message with <!--ANSWERED:question_id_here-->
+- When the participant selects a session track, end your message with <!--SESSION:session_id_here--> using the EXACT id from the Current Phase block. Emit this exactly once, in the message where the choice becomes clear.
 - When ALL questions have been asked OR the participant wants to wrap up, generate a brief "What I Heard" summary. Start with "Here is what I heard:" then summarize in 3-4 bullet points (use ">" at the start of each). End with "Does this capture everything?" Then add <!--COMPLETE--> at the very end.
 - These markers are hidden from the user, include them at the very end.
 - There are only 5 questions. Move through them as fast as possible. No small talk between questions.
@@ -166,8 +171,15 @@ NEVER invent a confirmation email, dashboard link, or next-step URL that you hav
         while ((markerMatch = markerRegex.exec(fullResponse)) !== null) {
           answeredMarkers.push(markerMatch[1])
         }
+        const sessionMarkerMatch = /<!--SESSION:([a-f0-9-]+)-->/i.exec(fullResponse)
+        const validSessionIds = new Set((sessionGroups || []).map((sg) => sg.id))
+        const sessionMarker = sessionMarkerMatch && validSessionIds.has(sessionMarkerMatch[1]) ? sessionMarkerMatch[1] : null
         const isComplete = fullResponse.includes('<!--COMPLETE-->')
-        const cleanResponse = fullResponse.replace(/<!--ANSWERED:[^>]+-->/g, '').replace(/<!--COMPLETE-->/g, '').trim()
+        const cleanResponse = fullResponse
+          .replace(/<!--ANSWERED:[^>]+-->/g, '')
+          .replace(/<!--SESSION:[^>]+-->/g, '')
+          .replace(/<!--COMPLETE-->/g, '')
+          .trim()
 
         if (cleanResponse.length > 0) {
           const updates: Record<string, unknown> = {
@@ -176,6 +188,10 @@ NEVER invent a confirmation email, dashboard link, or next-step URL that you hav
 
           if (answeredMarkers.length > 0) {
             updates.answered_question_ids = Array.from(new Set([...(convo.answered_question_ids || []), ...answeredMarkers]))
+          }
+
+          if (sessionMarker && !convo.session_group_id) {
+            updates.session_group_id = sessionMarker
           }
 
           // Try to extract name from early conversation
@@ -203,6 +219,7 @@ NEVER invent a confirmation email, dashboard link, or next-step URL that you hav
             eventData: {
               responseLength: cleanResponse.length,
               answeredQuestions: answeredMarkers,
+              sessionMarker,
               isComplete,
               streamAborted,
             },
