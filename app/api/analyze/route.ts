@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import claude from '@/lib/claude'
 import { supabase } from '@/lib/supabase'
 import { logEvent } from '@/lib/log-event'
-import { notifyInterviewComplete } from '@/lib/notify'
+import { notifyInterviewComplete, notifyParticipant } from '@/lib/notify'
 
 export const maxDuration = 60
 
@@ -86,15 +86,24 @@ Return ONLY valid JSON with this exact structure (no markdown, no code blocks):
     ? await supabase.from('session_groups').select('name').eq('id', convo.session_group_id).single()
     : { data: null }
 
-  await notifyInterviewComplete({
-    respondentName: convo.respondent_name,
-    respondentEmail: convo.respondent_email,
-    respondentRole: convo.respondent_role,
-    clientName: client?.name || 'Unknown',
-    sessionName: sessionGroup?.name || null,
-    messageCount: (convo.messages || []).length,
-    analysis,
-  })
+  await Promise.all([
+    notifyInterviewComplete({
+      respondentName: convo.respondent_name,
+      respondentEmail: convo.respondent_email,
+      respondentRole: convo.respondent_role,
+      clientName: client?.name || 'Unknown',
+      sessionName: sessionGroup?.name || null,
+      messageCount: (convo.messages || []).length,
+      analysis,
+    }),
+    notifyParticipant({
+      respondentName: convo.respondent_name,
+      respondentEmail: convo.respondent_email,
+      respondentRole: convo.respondent_role,
+      clientName: client?.name || 'BuilderCamp',
+      sessionName: sessionGroup?.name || null,
+    }),
+  ])
 
   return NextResponse.json({ analysis })
 }

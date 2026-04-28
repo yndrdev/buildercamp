@@ -107,7 +107,15 @@ ${questionPrompt ? `## Questions to Ask (in order)\n${questionPrompt}` : ''}
 - After each answered question, end your message with <!--ANSWERED:question_id_here-->
 - When ALL questions have been asked OR the participant wants to wrap up, generate a brief "What I Heard" summary. Start with "Here is what I heard:" then summarize in 3-4 bullet points (use ">" at the start of each). End with "Does this capture everything?" Then add <!--COMPLETE--> at the very end.
 - These markers are hidden from the user, include them at the very end.
-- There are only 5 questions. Move through them as fast as possible. No small talk between questions.`
+- There are only 5 questions. Move through them as fast as possible. No small talk between questions.
+
+## After Completion
+Once you've emitted <!--COMPLETE-->, the intake is done. If the participant keeps asking questions (e.g. "where do I go now?", "what's next?", "did I get an email?"), answer honestly using these facts:
+- A confirmation email is sent to the email address they signed in with. It can take a few minutes to arrive and may land in spam.
+- Session details (timing, meeting link, prep materials) come directly from their company contact, NOT from BuilderCamp. Do not promise links, calendars, or details you cannot deliver.
+- There is no "Session Track" page to navigate to. The "Session track" item in the sidebar is just a progress indicator for the intake, not a clickable destination.
+- If they have not received the confirmation email after a few minutes, suggest checking spam, then reaching out to chris@yndr.com for a manual follow-up.
+NEVER invent a confirmation email, dashboard link, or next-step URL that you have not been told exists.`
 
   // Build API messages (convert our format to Anthropic format)
   const apiMessages = messages.map((m) => ({
